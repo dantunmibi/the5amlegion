@@ -604,30 +604,17 @@ def add_film_grain(img, intensity=0.1):
 
 def create_dynamic_music_layer(audio_duration, script_data):
     """
-    Create music layer with dynamic volume based on emotional arc
-    FIXED: Use multiply_volume() or audio_fx for MoviePy compatibility
+    Create music layer with proper volume mixing
+    FIXED: Use audio_volumex() for compatibility and better volume control
     """
     
     if not MUSIC_AVAILABLE:
         print("⚠️ Music system unavailable, skipping background music")
         return None
     
-    print("\n🎵 Creating DYNAMIC music layer (emotional arc)...")
+    print("\n🎵 Creating music layer with dynamic volume...")
     
     content_type = script_data.get('content_type', 'general')
-    
-    # Load timing metadata if available
-    timing_path = os.path.join(TMP, "audio_timing.json")
-    sections = []
-    
-    if os.path.exists(timing_path):
-        try:
-            with open(timing_path, 'r') as f:
-                timing_data = json.load(f)
-                sections = timing_data.get('sections', [])
-            print(f"   ✅ Using {len(sections)} timed sections for volume control")
-        except:
-            print("   ⚠️ Could not load timing data, using single track")
     
     # Get primary music track
     scene_map = {
@@ -652,7 +639,7 @@ def create_dynamic_music_layer(audio_duration, script_data):
         # Load base music
         music = AudioFileClip(music_path)
         
-        # Loop music if needed using concatenate
+        # Loop music if needed
         if music.duration < audio_duration:
             loops_needed = int(audio_duration / music.duration) + 1
             print(f"   🔁 Looping music {loops_needed}x to match duration")
@@ -664,25 +651,23 @@ def create_dynamic_music_layer(audio_duration, script_data):
         # Trim to exact duration
         music = music.subclipped(0, min(audio_duration, music.duration))
         
-        # ✅ SIMPLE APPROACH: Single volume level (no dynamic changes)
-        # This is more reliable and still sounds professional
-        
-        # Base volume based on content type
+        # INCREASED VOLUME LEVELS (previous was too quiet)
         volume_levels = {
-            'early_morning': 0.28,   # Energetic
-            'late_night': 0.18,      # Subtle
-            'midday': 0.30,          # Powerful
-            'evening': 0.22,         # Reflective
-            'general': 0.25
+            'early_morning': 0.40,   # Energetic (was 0.28)
+            'late_night': 0.25,      # Subtle (was 0.18)
+            'midday': 0.45,          # Powerful (was 0.30)
+            'evening': 0.32,         # Reflective (was 0.22)
+            'general': 0.35          # Default (was 0.25)
         }
         
-        base_volume = volume_levels.get(content_type, 0.25)
+        base_volume = volume_levels.get(content_type, 0.35)
         
-        # ✅ FIX: Use multiply_volume() which exists in all MoviePy versions
-        import moviepy.audio.fx.all as afx
-        music = music.fx(afx.multiply_volume, base_volume)
+        # Use audio_volumex for better compatibility
+        from moviepy.audio.fx.volumex import volumex
+        music = music.fx(volumex, base_volume)
         
         print(f"   ✅ Music layer created at {base_volume*100:.0f}% volume")
+        print(f"   Duration: {music.duration:.2f}s")
         
         return music
             
@@ -1085,10 +1070,16 @@ background_music = create_dynamic_music_layer(duration, data)
 
 if background_music:
     try:
+        # Apply slight compression to voice for clarity
+        from moviepy.audio.fx.audio_normalize import audio_normalize
+        
+        # Normalize voice to ensure it's loud enough
+        voice_normalized = audio.fx(audio_normalize)
+        
         # Composite: TTS voiceover + background music
-        final_audio = CompositeAudioClip([audio, background_music])
+        final_audio = CompositeAudioClip([voice_normalized, background_music])
         video = video.with_audio(final_audio)
-        print(f"   ✅ Audio: TTS + Epic background music (dynamic volume)")
+        print(f"   ✅ Audio: TTS + Epic background music (optimized mix)")
     except Exception as e:
         print(f"   ⚠️ Music compositing failed: {e}")
         print(f"   Fallback: TTS only")

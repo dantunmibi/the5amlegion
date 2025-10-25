@@ -67,8 +67,8 @@ def load_script():
 
 def build_tts_text_with_pauses(script_data):
     """
-    Build TTS text with SUBTLE pauses for dramatic effect
-    FIXED: Reduced pause markers to prevent "moaning" sound
+    Build TTS text with MINIMAL pauses - let TTS handle natural pacing
+    FIXED: Remove manual pause markers, use punctuation only
     """
     
     content_type = script_data.get('content_type', 'general')
@@ -81,52 +81,54 @@ def build_tts_text_with_pauses(script_data):
     bullets = script_data.get('bullets', [])
     cta = script_data.get('cta', '')
     
-    # Build structured text with REDUCED pauses
+    # Build structured text with NATURAL pauses (punctuation only)
     tts_sections = []
     
     # Hook section
     if hook:
-        # Remove excessive pauses - let TTS handle natural pacing
         hook_text = hook.strip()
+        # Ensure it ends with proper punctuation
+        if not hook_text.endswith(('.', '!', '?')):
+            hook_text += '.'
+        
         tts_sections.append({
             'name': 'hook',
             'text': hook_text,
-            'pause_after': 0.8  # Reduced from 1.5
+            'pause_after': 0.5  # Natural breath
         })
     
     # Bullet sections
     for i, bullet in enumerate(bullets):
-        # Clean up text - remove manual pauses
         bullet_text = bullet.strip()
-        # Remove any existing ... markers
-        bullet_text = bullet_text.replace('...', ',')  # Replace with comma for natural pause
+        
+        # Ensure proper punctuation
+        if not bullet_text.endswith(('.', '!', '?')):
+            bullet_text += '.'
         
         tts_sections.append({
             'name': f'bullet_{i}',
             'text': bullet_text,
-            'pause_after': 0.6  # Reduced from 1.0
+            'pause_after': 0.4  # Natural breath between points
         })
     
     # CTA section
     if cta:
         cta_text = cta.strip()
-        cta_text = cta_text.replace('...', ',')  # Replace with comma
+        if not cta_text.endswith(('.', '!', '?')):
+            cta_text += '.'
         
         tts_sections.append({
             'name': 'cta',
             'text': cta_text,
-            'pause_after': 0.8  # Reduced from 1.5
+            'pause_after': 0.5  # Final pause
         })
     
-    # Build full text WITHOUT manual pause markers
+    # Build full text with ONLY punctuation (no manual pause markers)
     full_text_parts = []
     for section in tts_sections:
         full_text_parts.append(section['text'])
-        # Add subtle pause between sections (single period)
-        pause_duration = section['pause_after']
-        if pause_duration >= 0.8:
-            full_text_parts.append('.')  # Just a period, not ellipsis
     
+    # Join with single space - TTS will handle pauses naturally from punctuation
     full_text = ' '.join(full_text_parts)
     
     # Calculate expected duration
@@ -148,39 +150,11 @@ def build_tts_text_with_pauses(script_data):
     print(f"📝 TTS Configuration:")
     print(f"   Words: {word_count}")
     print(f"   Target WPM: {wpm}")
-    print(f"   Pause time: {pause_time:.1f}s")
+    print(f"   Natural pauses: {pause_time:.1f}s")
     print(f"   Estimated duration: {estimated_duration:.1f}s")
+    print(f"   Preview: {full_text[:100]}...")
     
     return full_text, tts_sections, estimated_duration
-
-
-def add_dramatic_pauses(text, intensity):
-    """
-    FIXED: Add MINIMAL pauses - let TTS handle natural pacing
-    Previous version was adding too many ... causing "moaning" sound
-    """
-    
-    # Clean up any existing excessive pauses
-    text = text.replace('...', ',')  # Replace all ellipsis with commas
-    text = text.replace('..', ',')
-    
-    # ONLY add pause after questions (natural)
-    text = text.replace('?', '?,')
-    
-    # For aggressive intensity, add slight emphasis (not pause)
-    if intensity == 'aggressive':
-        # Use periods for emphasis, not ellipsis
-        text = text.replace('!', '.')
-    
-    # Clean up multiple consecutive commas
-    while ',,' in text:
-        text = text.replace(',,', ',')
-    
-    # Clean up extra spaces
-    text = ' '.join(text.split())
-    
-    return text
-
 
 def generate_audio_coqui(text, output_path, speaker_id, speed=0.75):
     """
