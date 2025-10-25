@@ -605,7 +605,7 @@ def add_film_grain(img, intensity=0.1):
 def create_dynamic_music_layer(audio_duration, script_data):
     """
     Create music layer with dynamic volume based on emotional arc
-    Volume changes per section for maximum emotional impact
+    FIXED: Proper audio looping for MoviePy compatibility
     """
     
     if not MUSIC_AVAILABLE:
@@ -652,26 +652,32 @@ def create_dynamic_music_layer(audio_duration, script_data):
         # Load base music
         music = AudioFileClip(music_path)
         
-        # Trim/loop to duration
+        # ✅ FIX: Proper looping for MoviePy
         if music.duration < audio_duration:
-            loops = int(audio_duration / music.duration) + 1
-            music = music.loop(n=loops)
-            print(f"   🔁 Looped music {loops}x to match duration")
+            # Calculate how many loops needed
+            loops_needed = int(audio_duration / music.duration) + 1
+            print(f"   🔁 Looping music {loops_needed}x to match duration")
+            
+            # Create looped audio using concatenate
+            from moviepy.audio.AudioClip import concatenate_audioclips
+            music_clips = [music] * loops_needed
+            music = concatenate_audioclips(music_clips)
         
-        music = music.subclipped(0, audio_duration)
+        # Trim to exact duration
+        music = music.subclipped(0, min(audio_duration, music.duration))
         
         # If we have section timing, create dynamic volume
         if sections and len(sections) > 0:
             # Volume levels by section type (emotional arc)
             volume_map = {
-                'hook': 0.12,       # Low (let voice dominate, build tension)
-                'bullet_0': 0.22,   # Building (urgency rising)
-                'bullet_1': 0.28,   # Peak emotion (transformation moment)
-                'bullet_2': 0.26,   # Sustain power
-                'cta': 0.20         # Resolve (clear command)
+                'hook': 0.15,       # Increased from 0.12 (more audible)
+                'bullet_0': 0.25,   # Increased from 0.22
+                'bullet_1': 0.32,   # Increased from 0.28 (PEAK)
+                'bullet_2': 0.28,   # Increased from 0.26
+                'cta': 0.22         # Increased from 0.20
             }
             
-            # Create volume envelope
+            # ✅ FIX: Use volumex() instead of with_volume_scaled()
             music_clips = []
             
             for section in sections:
@@ -680,12 +686,13 @@ def create_dynamic_music_layer(audio_duration, script_data):
                 duration = section['duration']
                 
                 # Get volume for this section
-                volume = volume_map.get(section_name, 0.20)
+                volume = volume_map.get(section_name, 0.22)
                 
                 # Extract and volume-adjust this section
                 if start + duration <= music.duration:
                     section_music = music.subclipped(start, start + duration)
-                    section_music = section_music.with_volume_scaled(volume)
+                    # Use volumex() which is more reliable
+                    section_music = section_music.volumex(volume)
                     section_music = section_music.with_start(start)
                     
                     music_clips.append(section_music)
@@ -700,18 +707,20 @@ def create_dynamic_music_layer(audio_duration, script_data):
                 return final_music
             else:
                 # Fallback to simple
-                music = music.with_volume_scaled(0.22)
-                print(f"   ⚠️ Fallback: Simple music layer at 22% volume")
+                music = music.volumex(0.25)  # Increased base volume
+                print(f"   ⚠️ Fallback: Simple music layer at 25% volume")
                 return music
         
         else:
-            # Simple version: single volume (22% default)
-            music = music.with_volume_scaled(0.22)
-            print(f"   ✅ Simple music layer at 22% volume")
+            # Simple version: single volume
+            music = music.volumex(0.25)  # Increased from 0.22
+            print(f"   ✅ Simple music layer at 25% volume")
             return music
             
     except Exception as e:
         print(f"⚠️ Dynamic music creation failed: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

@@ -67,13 +67,8 @@ def load_script():
 
 def build_tts_text_with_pauses(script_data):
     """
-    Build TTS text with strategic pauses for dramatic effect (PRD-compliant)
-    
-    Pause durations (from PRD):
-    - comma: 0.5s
-    - period: 1.0s
-    - ellipsis (...): 1.5s (dramatic pause)
-    - paragraph: 2.0s (section break)
+    Build TTS text with SUBTLE pauses for dramatic effect
+    FIXED: Reduced pause markers to prevent "moaning" sound
     """
     
     content_type = script_data.get('content_type', 'general')
@@ -86,66 +81,67 @@ def build_tts_text_with_pauses(script_data):
     bullets = script_data.get('bullets', [])
     cta = script_data.get('cta', '')
     
-    # Build structured text with pauses
+    # Build structured text with REDUCED pauses
     tts_sections = []
     
     # Hook section
     if hook:
-        hook_text = add_dramatic_pauses(hook, intensity)
+        # Remove excessive pauses - let TTS handle natural pacing
+        hook_text = hook.strip()
         tts_sections.append({
             'name': 'hook',
             'text': hook_text,
-            'pause_after': 1.5  # Dramatic pause after hook
+            'pause_after': 0.8  # Reduced from 1.5
         })
     
     # Bullet sections
     for i, bullet in enumerate(bullets):
-        bullet_text = add_dramatic_pauses(bullet, intensity)
+        # Clean up text - remove manual pauses
+        bullet_text = bullet.strip()
+        # Remove any existing ... markers
+        bullet_text = bullet_text.replace('...', ',')  # Replace with comma for natural pause
+        
         tts_sections.append({
             'name': f'bullet_{i}',
             'text': bullet_text,
-            'pause_after': 1.0  # Standard pause between bullets
+            'pause_after': 0.6  # Reduced from 1.0
         })
     
     # CTA section
     if cta:
-        cta_text = add_dramatic_pauses(cta, intensity)
+        cta_text = cta.strip()
+        cta_text = cta_text.replace('...', ',')  # Replace with comma
+        
         tts_sections.append({
             'name': 'cta',
             'text': cta_text,
-            'pause_after': 1.5  # Final dramatic pause
+            'pause_after': 0.8  # Reduced from 1.5
         })
     
-    # Build full text for single-file generation
+    # Build full text WITHOUT manual pause markers
     full_text_parts = []
     for section in tts_sections:
         full_text_parts.append(section['text'])
-        # Add pause marker (TTS will interpret this)
+        # Add subtle pause between sections (single period)
         pause_duration = section['pause_after']
-        if pause_duration >= 1.5:
-            full_text_parts.append('...')  # Ellipsis for long pause
-        elif pause_duration >= 1.0:
-            full_text_parts.append('.')    # Period for standard pause
+        if pause_duration >= 0.8:
+            full_text_parts.append('.')  # Just a period, not ellipsis
     
     full_text = ' '.join(full_text_parts)
     
-    # Calculate expected duration for sync optimization
+    # Calculate expected duration
     word_count = len(full_text.split())
     
-    # Adjust WPM based on content type and pauses
     base_wpm = {
-        'early_morning': 120,   # Moderate pace (energetic but clear)
-        'late_night': 100,      # Slowest (intimate, let it sink in)
-        'midday': 130,          # Faster (urgency)
-        'evening': 110,         # Slow (reflective)
+        'early_morning': 120,
+        'late_night': 100,
+        'midday': 130,
+        'evening': 110,
         'general': 110
     }
     
     wpm = base_wpm.get(content_type, 110)
-    
-    # Add time for strategic pauses
     pause_time = sum(section['pause_after'] for section in tts_sections)
-    
     word_time = (word_count / wpm) * 60
     estimated_duration = word_time + pause_time
     
@@ -160,31 +156,25 @@ def build_tts_text_with_pauses(script_data):
 
 def add_dramatic_pauses(text, intensity):
     """
-    Add strategic pauses within text for dramatic effect
-    
-    Rules:
-    - After questions: Add dramatic pause
-    - After power statements: Add pause
-    - For aggressive intensity: More frequent pauses
+    FIXED: Add MINIMAL pauses - let TTS handle natural pacing
+    Previous version was adding too many ... causing "moaning" sound
     """
     
-    # Replace existing ellipsis with standard format
-    text = text.replace('...', ' ... ')
+    # Clean up any existing excessive pauses
+    text = text.replace('...', ',')  # Replace all ellipsis with commas
+    text = text.replace('..', ',')
     
-    # Add pauses after questions (dramatic)
-    text = text.replace('?', '? ...')
+    # ONLY add pause after questions (natural)
+    text = text.replace('?', '?,')
     
-    # Add pauses after exclamations (if aggressive)
+    # For aggressive intensity, add slight emphasis (not pause)
     if intensity == 'aggressive':
-        text = text.replace('!', '! ...')
+        # Use periods for emphasis, not ellipsis
+        text = text.replace('!', '.')
     
-    # Add pause after "you" statements (personal impact)
-    text = text.replace('You.', 'You ...')
-    text = text.replace('you.', 'you ...')
-    
-    # Clean up multiple consecutive pauses
-    while '... ...' in text:
-        text = text.replace('... ...', '...')
+    # Clean up multiple consecutive commas
+    while ',,' in text:
+        text = text.replace(',,', ',')
     
     # Clean up extra spaces
     text = ' '.join(text.split())
