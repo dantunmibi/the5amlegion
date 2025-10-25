@@ -21,98 +21,109 @@ MUSIC_LIBRARY = {
     # 🌑 DARK ATMOSPHERIC (Pain/Contemplation)
     'dark_atmospheric': {
         'name': 'Dark Atmospheric Piano',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_0ac3f7621f.mp3',
-        'duration': 120,
+        # Open this page and click Download MP3 → copy link address (Haunting Piano / dark piano match)
+        'url': 'https://pixabay.com/music/solo-piano-haunting-piano-ambient-tension-full-272282/',
+        'duration': 135,
         'emotion': 'dark, contemplative, tension',
         'scenes': ['pain', 'late_night'],
         'volume_default': 0.12
     },
-    
+
     'ambient_tension': {
         'name': 'Ambient Tension',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
-        'duration': 90,
+        # exact match (Ambient Tension by Sonican) — copy MP3 link from this page.
+        'url': 'https://pixabay.com/music/sneaky-ambient-tension-188678/',
+        'duration': 156,
         'emotion': 'mysterious, building tension',
         'scenes': ['pain'],
         'volume_default': 0.10
     },
-    
+
     # 🔥 BUILDING DRUMS (Wake-up/Urgency)
     'epic_drums': {
         'name': 'Epic Drums Build',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c5229bcf.mp3',
-        'duration': 100,
+        # Epic Drums (Playsound) — good direct substitute for building/urgent drums.
+        'url': 'https://pixabay.com/music/upbeat-epic-drums-216819/',
+        'duration': 99,
         'emotion': 'building, urgent, powerful',
         'scenes': ['wake_up', 'midday'],
         'volume_default': 0.20
     },
-    
+
     'percussion_rise': {
         'name': 'Percussion Rising',
-        'url': 'https://cdn.pixabay.com/download/audio/2023/02/28/audio_02f6a5b3f1.mp3',
-        'duration': 85,
+        # Suggested substitute (epic percussion / percussion tracks search results — open & copy MP3)
+        'url': 'https://pixabay.com/music/action-epic-drums-percussion-318118/',
+        'duration': 88,
         'emotion': 'intense, driving, momentum',
         'scenes': ['wake_up'],
         'volume_default': 0.22
     },
-    
+
     # 🏔️ EPIC ORCHESTRAL (Transformation/Journey)
     'epic_orchestral': {
         'name': 'Epic Orchestral Cinematic',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_4db1103d11.mp3',
-        'duration': 130,
+        # Epic Orchestral Drums (build-up scenes) — copy MP3 link from this page.
+        'url': 'https://pixabay.com/music/build-up-scenes-epic-orchestral-drums-171728/',
+        'duration': 128,
         'emotion': 'epic, inspiring, victorious',
         'scenes': ['transformation', 'success'],
         'volume_default': 0.28
     },
-    
+
     'cinematic_inspiration': {
         'name': 'Cinematic Inspiration',
-        'url': 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3',
+        # Cinematic / Main Title Inspiration pages — good fit; open page and copy MP3.
+        'url': 'https://pixabay.com/music/main-title-cinematic-inspiration-149922/',
         'duration': 95,
         'emotion': 'uplifting, powerful, breakthrough',
         'scenes': ['transformation'],
         'volume_default': 0.26
     },
-    
+
     # ⚔️ POWERFUL ACTION (Command/CTA)
     'powerful_action': {
         'name': 'Powerful Action Theme',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/06/03/audio_7a87dff2da.mp3',
+        # Use a strong "action cinematic" track — search result pages like this are good starting points.
+        'url': 'https://pixabay.com/music/main-title-action-cinematic-powerful-background-252374/',
         'duration': 110,
         'emotion': 'commanding, strong, decisive',
         'scenes': ['action', 'discipline'],
         'volume_default': 0.25
     },
-    
+
     'heroic_resolve': {
         'name': 'Heroic Resolve',
-        'url': 'https://cdn.pixabay.com/download/audio/2023/01/12/audio_24b5080dc1.mp3',
+        # Substitute with a triumphant/orchestral track (example: Inspirational Epic Orchestral)
+        'url': 'https://pixabay.com/music/main-title-inspirational-epic-orchestral-186819/',
         'duration': 88,
         'emotion': 'triumphant, resolving, victorious',
         'scenes': ['action'],
         'volume_default': 0.24
     },
-    
+
     # 🎼 GENERAL EPIC (All-purpose)
     'epic_cinematic': {
         'name': 'Epic Cinematic Motivational',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/11/09/audio_1f07dcb1c2.mp3',
+        # Epic Cinematic Inspiration page — good all-purpose epic.
+        'url': 'https://pixabay.com/music/main-title-epic-cinematic-inspiration-141080/',
         'duration': 140,
         'emotion': 'epic, motivational, building',
         'scenes': ['general', 'morning_fire'],
         'volume_default': 0.20
     },
-    
+
     'inspiring_dramatic': {
         'name': 'Inspiring Dramatic',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/09/14/audio_e8ef013c50.mp3',
+        # Inspiring / dramatic pages — pick the MP3 from any of these inspiring tracks.
+        'url': 'https://pixabay.com/music/corporate-cinematic-inspiration-300167/',
         'duration': 105,
         'emotion': 'dramatic, inspiring, emotional',
         'scenes': ['general', 'evening'],
         'volume_default': 0.22
     }
 }
+
 
 
 def get_music_cache_path():
