@@ -98,12 +98,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytz
 
-      - name: 🎵 Download background music library
-        run: |
-          echo "🎵 Downloading copyright-free epic music..."
-          python .github/scripts/download_music.py --download-all
-        continue-on-error: true
-
       - name: 🔥 Check optimal motivation posting time
         id: schedule_check
         run: |
@@ -290,6 +284,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           echo "🔥 Python dependencies installed for motivation engine"
+
+      - name: 🎵 Download background music library
+        run: |
+          echo "🎵 Downloading copyright-free epic music..."
+          python .github/scripts/download_music.py --download-all
+        continue-on-error: true
 
       - name: 🔍 Fetch trending motivational topics
         if: steps.schedule_check.outputs.should_post == 'true'
