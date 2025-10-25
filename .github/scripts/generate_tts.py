@@ -1,416 +1,565 @@
 #!/usr/bin/env python3
 """
-.github/scripts/generate_tts.py
-Garden Glow Up - Robust Coqui TTS generation with gardening-specific cleaning
-OPTIMIZED: Using best researched models with proper speaker configuration
+🔥 Generate Motivational TTS - PRODUCTION VERSION
+Creates deep, commanding voiceover optimized for motivation content
+
+Features:
+- Deep male voices (p326, p376, p360, p287)
+- Strategic pauses for dramatic impact
+- Optimized audio sync timing
+- Intensity-based voice selection
+- Fallback models for reliability
 """
+
 import os
 import json
-import re
-import sys
-from tenacity import retry, stop_after_attempt, wait_exponential
-from pydub import AudioSegment
-import logging
-
-logging.basicConfig(level=logging.INFO, format="%(message)s")
+from pathlib import Path
+import subprocess
 
 TMP = os.getenv("GITHUB_WORKSPACE", ".") + "/tmp"
 os.makedirs(TMP, exist_ok=True)
-FULL_AUDIO_PATH = os.path.join(TMP, "voice.mp3")
-AUDIO_METADATA = os.path.join(TMP, "audio_metadata.json")
 
-# ===== OPTIMIZED MODEL CONFIGURATION (BASED ON RESEARCH) =====
-# Primary: VCTK-VITS is fastest and highest quality for YouTube Shorts
+# 🔥 MOTIVATIONAL TTS CONFIGURATION (from PRD)
 PRIMARY_MODEL = "tts_models/en/vctk/vits"
-PRIMARY_SPEAKER = "p225"  # Female, clear American accent
 
-# Alternative speakers (if primary fails or for variety)
-ALT_VCTK_SPEAKERS = ["p230", "p273", "p330", "p234"]  # Mix of male/female, American/British
+# ✅ CORRECT MALE SPEAKERS (Updated knowledge base)
+MALE_SPEAKERS = {
+    'p326': 'Deep authoritative male voice',
+    'p376': 'Intense and passionate male voice',
+    'p360': 'Commanding and strong male voice',
+    'p287': 'Rich cinematic male voice'
+}
 
-# Fallback models (in order of preference)
 FALLBACK_MODELS = [
     "tts_models/en/ljspeech/tacotron2-DDC",
     "tts_models/en/ljspeech/glow-tts",
-    "tts_models/en/ljspeech/fast_pitch"
+    "tts_models/en/ljspeech/speedy-speech"
 ]
 
-print(f"✅ TTS Configuration:")
-print(f"   Primary Model: {PRIMARY_MODEL}")
-print(f"   Primary Speaker: {PRIMARY_SPEAKER}")
-print(f"   Fallback Models: {len(FALLBACK_MODELS)} alternatives")
+# Speed adjustments for content types (PRD: 25% slower for dramatic)
+SPEED_SETTINGS = {
+    'early_morning': 0.80,   # Slower, commanding (wake-up energy)
+    'late_night': 0.70,      # Very slow, intimate (2AM truth)
+    'midday': 0.85,          # Moderate, urgent (push through)
+    'evening': 0.75,         # Slow, reflective (contemplative)
+    'general': 0.75          # Default: 25% slower
+}
 
-# -------------------------
-# Enhanced Text Cleaning for Gardening
-# -------------------------
-def clean_text_for_tts(text: str) -> str:
-    """Enhanced text preprocessing for natural TTS pronunciation (gardening-optimized)."""
-    if not text:
-        return ""
+# 🔥 INTENSITY-BASED SPEAKER SELECTION (Correct males only)
+SPEAKER_BY_INTENSITY = {
+    'aggressive': 'p376',      # Most intense and passionate
+    'balanced': 'p326',        # Deep and authoritative
+    'inspirational': 'p287'    # Rich and uplifting
+}
 
-    # Normalize whitespace
-    text = text.strip()
-    text = re.sub(r'\s+', ' ', text)
 
-    # Protect common abbreviations
-    protected_patterns = {
-        r'\bDr\.': 'Doctor',
-        r'\bMr\.': 'Mister',
-        r'\bMrs\.': 'Misses',
-        r'\bMs\.': 'Miss',
-        r'\betc\.': 'etcetera',
-        r'\be\.g\.': 'for example',
-        r'\bi\.e\.': 'that is',
+def load_script():
+    """Load the generated script"""
+    script_path = os.path.join(TMP, "script.json")
+    
+    if not os.path.exists(script_path):
+        print("❌ Script file not found!")
+        exit(1)
+    
+    with open(script_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def build_tts_text_with_pauses(script_data):
+    """
+    Build TTS text with strategic pauses for dramatic effect (PRD-compliant)
+    
+    Pause durations (from PRD):
+    - comma: 0.5s
+    - period: 1.0s
+    - ellipsis (...): 1.5s (dramatic pause)
+    - paragraph: 2.0s (section break)
+    """
+    
+    content_type = script_data.get('content_type', 'general')
+    intensity = script_data.get('intensity', 'balanced')
+    
+    print(f"🎙️ Building TTS for {content_type} content ({intensity} intensity)")
+    
+    # Get text components
+    hook = script_data.get('hook', '')
+    bullets = script_data.get('bullets', [])
+    cta = script_data.get('cta', '')
+    
+    # Build structured text with pauses
+    tts_sections = []
+    
+    # Hook section
+    if hook:
+        hook_text = add_dramatic_pauses(hook, intensity)
+        tts_sections.append({
+            'name': 'hook',
+            'text': hook_text,
+            'pause_after': 1.5  # Dramatic pause after hook
+        })
+    
+    # Bullet sections
+    for i, bullet in enumerate(bullets):
+        bullet_text = add_dramatic_pauses(bullet, intensity)
+        tts_sections.append({
+            'name': f'bullet_{i}',
+            'text': bullet_text,
+            'pause_after': 1.0  # Standard pause between bullets
+        })
+    
+    # CTA section
+    if cta:
+        cta_text = add_dramatic_pauses(cta, intensity)
+        tts_sections.append({
+            'name': 'cta',
+            'text': cta_text,
+            'pause_after': 1.5  # Final dramatic pause
+        })
+    
+    # Build full text for single-file generation
+    full_text_parts = []
+    for section in tts_sections:
+        full_text_parts.append(section['text'])
+        # Add pause marker (TTS will interpret this)
+        pause_duration = section['pause_after']
+        if pause_duration >= 1.5:
+            full_text_parts.append('...')  # Ellipsis for long pause
+        elif pause_duration >= 1.0:
+            full_text_parts.append('.')    # Period for standard pause
+    
+    full_text = ' '.join(full_text_parts)
+    
+    # Calculate expected duration for sync optimization
+    word_count = len(full_text.split())
+    
+    # Adjust WPM based on content type and pauses
+    base_wpm = {
+        'early_morning': 120,   # Moderate pace (energetic but clear)
+        'late_night': 100,      # Slowest (intimate, let it sink in)
+        'midday': 130,          # Faster (urgency)
+        'evening': 110,         # Slow (reflective)
+        'general': 110
     }
-    for pat, rep in protected_patterns.items():
-        text = re.sub(pat, rep, text, flags=re.IGNORECASE)
+    
+    wpm = base_wpm.get(content_type, 110)
+    
+    # Add time for strategic pauses
+    pause_time = sum(section['pause_after'] for section in tts_sections)
+    
+    word_time = (word_count / wpm) * 60
+    estimated_duration = word_time + pause_time
+    
+    print(f"📝 TTS Configuration:")
+    print(f"   Words: {word_count}")
+    print(f"   Target WPM: {wpm}")
+    print(f"   Pause time: {pause_time:.1f}s")
+    print(f"   Estimated duration: {estimated_duration:.1f}s")
+    
+    return full_text, tts_sections, estimated_duration
 
-    # Special characters
-    replacements = {
-        '%': ' percent',
-        '&': ' and ',
-        '+': ' plus ',
-        '@': ' at ',
-        '$': ' dollars ',
-        '#': ' hashtag ',
-        '...': ' ',
-        '-': ' to ',
-    }
-    for k, v in replacements.items():
-        text = text.replace(k, v)
 
-    # 🌱 Gardening-specific measurement and term handling
-    gardening_patterns = {
-        r'(\d+)\s*"': r'\1 inches',
-        r'(\d+)\s*\'': r'\1 feet',
-        r'(\d+)\s*in\b': r'\1 inches',
-        r'(\d+)\s*ft\b': r'\1 feet',
-        r'(\d+)\s*cm\b': r'\1 centimeters',
-        r'(\d+)\s*mm\b': r'\1 millimeters',
-        r'(\d+)\s*tbsp\b': r'\1 tablespoons',
-        r'(\d+)\s*tsp\b': r'\1 teaspoons',
-        r'(\d+)\s*ml\b': r'\1 milliliters',
-        r'(\d+)\s*L\b': r'\1 liters',
-        r'(\d+)\s*oz\b': r'\1 ounces',
-        r'(\d+)\s*lbs?\b': r'\1 pounds',
-        r'(\d+)\s*gal\b': r'\1 gallons',
-        r'(\d+)\s*°C\b': r'\1 degrees Celsius',
-        r'(\d+)\s*°F\b': r'\1 degrees Fahrenheit',
-        r'\bPH\b': 'P H',
-        r'\bpH\b': 'P H',
-        r'\bNPK\b': 'N P K',
-    }
-    for pat, rep in gardening_patterns.items():
-        text = re.sub(pat, rep, text, flags=re.IGNORECASE)
-
-    # 🌱 Plant name pronunciation hints (expand as needed)
-    plant_pronunciations = {
-        r'\bPothos\b': 'POH-thos',
-        r'\bMonstera\b': 'mon-STAIR-uh',
-        r'\bPhilodendron\b': 'fil-oh-DEN-dron',
-        r'\bSansevieria\b': 'san-suh-VEER-ee-uh',
-        r'\bFuchsia\b': 'FYOO-shuh',
-        r'\bAeonium\b': 'ay-OH-nee-um',
-        r'\bAglaonema\b': 'ag-lay-oh-NEE-muh',
-    }
-    for pat, rep in plant_pronunciations.items():
-        text = re.sub(pat, rep, text, flags=re.IGNORECASE)
-
-    # Remove emojis
-    emoji_pattern = re.compile("["
-        "\U0001F600-\U0001F64F"
-        "\U0001F300-\U0001F5FF"
-        "\U0001F680-\U0001F6FF"
-        "\U0001F1E0-\U0001F1FF"
-        "\u2600-\u26FF\u2700-\u27BF]+", flags=re.UNICODE)
-    text = emoji_pattern.sub('', text)
-
-    # Collapse whitespace again
-    text = re.sub(r'\s+', ' ', text).strip()
-
-    # Ensure final punctuation
-    if text and text[-1] not in ".!?":
-        text = text + "."
-
+def add_dramatic_pauses(text, intensity):
+    """
+    Add strategic pauses within text for dramatic effect
+    
+    Rules:
+    - After questions: Add dramatic pause
+    - After power statements: Add pause
+    - For aggressive intensity: More frequent pauses
+    """
+    
+    # Replace existing ellipsis with standard format
+    text = text.replace('...', ' ... ')
+    
+    # Add pauses after questions (dramatic)
+    text = text.replace('?', '? ...')
+    
+    # Add pauses after exclamations (if aggressive)
+    if intensity == 'aggressive':
+        text = text.replace('!', '! ...')
+    
+    # Add pause after "you" statements (personal impact)
+    text = text.replace('You.', 'You ...')
+    text = text.replace('you.', 'you ...')
+    
+    # Clean up multiple consecutive pauses
+    while '... ...' in text:
+        text = text.replace('... ...', '...')
+    
+    # Clean up extra spaces
+    text = ' '.join(text.split())
+    
     return text
 
-# -------------------------
-# Fallback helpers
-# -------------------------
-def generate_tts_fallback(text: str, out_path: str) -> str:
-    """Fallback to gTTS (requires internet). Returns path on success."""
-    try:
-        logging.info("🔄 Using gTTS fallback...")
-        from gtts import gTTS
-        t = gTTS(text=text, lang='en', slow=False)
-        t.save(out_path)
-        logging.info(f"✅ gTTS fallback saved to {out_path}")
-        return out_path
-    except Exception as e:
-        logging.warning(f"⚠️ gTTS fallback failed: {e}")
-        return generate_silent_audio_fallback(text, out_path)
 
-def generate_silent_audio_fallback(text: str, out_path: str) -> str:
-    """Create silent audio with duration estimated from word count."""
-    try:
-        words = len(text.split())
-        # Target 140-150 WPM for gardening content
-        duration_ms = max(15000, min(75000, int((words / 145.0) * 60000)))
-        silent = AudioSegment.silent(duration=duration_ms, frame_rate=22050)
-        silent.export(out_path, format="mp3")
-        logging.info(f"✅ Silent fallback created ({duration_ms/1000:.1f}s) at {out_path}")
-        return out_path
-    except Exception as e:
-        logging.error(f"❌ Silent fallback failed: {e}")
-        raise
-
-# -------------------------
-# TTS Generation
-# -------------------------
-def _tts_to_file(tts_obj, text: str, out_path: str, speaker: str = None):
+def generate_audio_coqui(text, output_path, speaker_id, speed=0.75):
     """
-    Robust wrapper around TTS.tts_to_file with speaker support
+    Generate audio using Coqui TTS with proper speaker parameter handling
     """
     try:
-        if speaker:
-            # Try with speaker parameter
-            try:
-                tts_obj.tts_to_file(text=text, file_path=out_path, speaker_idx=speaker)
-                return
-            except TypeError:
-                # Model doesn't support speaker_idx, try without
-                logging.info("   (Model doesn't support speaker selection, using default)")
-                pass
+        from TTS.api import TTS
         
-        # Fallback: no speaker parameter
-        tts_obj.tts_to_file(text=text, file_path=out_path)
+        print(f"🔊 Loading Coqui TTS model: {PRIMARY_MODEL}")
+        print(f"   🎤 Target speaker: {speaker_id} ({MALE_SPEAKERS.get(speaker_id, 'Unknown')})")
+        print(f"   ⚡ Speed: {speed}x (slower for dramatic impact)")
         
-    except Exception as e:
-        logging.error(f"   TTS generation error: {e}")
-        raise
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=4, max=30))
-def generate_sectional_tts():
-    """
-    Generate TTS using optimized model configuration
-    Primary: VCTK-VITS (fastest, best quality)
-    Fallback: LJSpeech models → gTTS
-    """
-    from TTS.api import TTS
-    
-    sections = [("hook", hook)] + [(f"bullet_{i}", b) for i, b in enumerate(bullets)] + [("cta", cta)]
-    section_paths = []
-
-    # ===== TRY PRIMARY MODEL (VCTK-VITS) =====
-    try:
-        logging.info(f"🔊 Loading PRIMARY model: {PRIMARY_MODEL}")
         tts = TTS(model_name=PRIMARY_MODEL, progress_bar=False)
         
-        # Verify speaker support
-        available_speakers = getattr(tts, "speakers", None)
-        use_speaker = False
-        selected_speaker = PRIMARY_SPEAKER
+        # ✅ Check if model supports multiple speakers
+        has_speakers = hasattr(tts, 'speakers') and tts.speakers is not None
         
-        if available_speakers:
-            if PRIMARY_SPEAKER in available_speakers:
-                use_speaker = True
-                logging.info(f"   ✅ Using speaker: {PRIMARY_SPEAKER}")
-            else:
-                # Try alternative speakers
-                for alt_speaker in ALT_VCTK_SPEAKERS:
-                    if alt_speaker in available_speakers:
-                        use_speaker = True
-                        selected_speaker = alt_speaker
-                        logging.info(f"   ✅ Using alternative speaker: {alt_speaker}")
+        if has_speakers:
+            print(f"   📢 Multi-speaker model detected")
+            print(f"   🎭 Available speakers: {len(tts.speakers)}")
+            
+            # Verify speaker exists (case-insensitive check)
+            available_speakers = [str(s).lower() for s in tts.speakers]
+            speaker_lower = speaker_id.lower()
+            
+            if speaker_lower not in available_speakers:
+                print(f"   ⚠️ Speaker '{speaker_id}' not in model")
+                print(f"   Available: {list(tts.speakers)[:10]}")
+                
+                # Try to find best male alternative
+                for alt_speaker in MALE_SPEAKERS.keys():
+                    if alt_speaker.lower() in available_speakers:
+                        speaker_id = alt_speaker
+                        print(f"   ✅ Using alternative male speaker: {speaker_id}")
                         break
-                
-                if not use_speaker:
-                    logging.info(f"   ⚠️ No preferred speakers available, using default")
-        
-        # Generate each section
-        for name, text in sections:
-            if not text.strip():
-                continue
-            
-            clean = clean_text_for_tts(text)
-            out_path = os.path.join(TMP, f"{name}.mp3")
-            
-            logging.info(f"🎧 Generating '{name}' ({len(clean)} chars)")
-            
-            if use_speaker:
-                _tts_to_file(tts, clean, out_path, speaker=selected_speaker)
-            else:
-                _tts_to_file(tts, clean, out_path)
-            
-            if os.path.exists(out_path) and os.path.getsize(out_path) > 1024:
-                section_paths.append(out_path)
-                logging.info(f"   ✅ {out_path}")
-            else:
-                raise Exception(f"Section file invalid: {out_path}")
-
-        # Combine sections with pauses
-        combined = AudioSegment.silent(duration=0)
-        for i, path in enumerate(section_paths):
-            part = AudioSegment.from_file(path)
-            # 250ms pause between sections (gardening content benefits from slightly longer pauses)
-            pause_ms = 250 if i < len(section_paths) - 1 else 0
-            combined += part + AudioSegment.silent(duration=pause_ms)
-
-        combined.export(FULL_AUDIO_PATH, format="mp3")
-        logging.info(f"✅ PRIMARY model success! Audio: {FULL_AUDIO_PATH}")
-        return section_paths
-
-    except Exception as primary_err:
-        logging.warning(f"⚠️ PRIMARY model failed: {primary_err}")
-
-    # ===== TRY FALLBACK MODELS =====
-    for fallback_model in FALLBACK_MODELS:
-        try:
-            logging.info(f"🔁 Trying FALLBACK: {fallback_model}")
-            tts_fb = TTS(model_name=fallback_model, progress_bar=False)
-            
-            section_paths = []
-            for name, text in sections:
-                if not text.strip():
-                    continue
-                
-                clean = clean_text_for_tts(text)
-                out_path = os.path.join(TMP, f"{name}.mp3")
-                
-                _tts_to_file(tts_fb, clean, out_path)
-                
-                if os.path.exists(out_path) and os.path.getsize(out_path) > 1024:
-                    section_paths.append(out_path)
                 else:
-                    raise Exception(f"Fallback section failed: {out_path}")
+                    # Use first available speaker as last resort
+                    speaker_id = str(tts.speakers[0])
+                    print(f"   🔄 Using first available: {speaker_id}")
             
-            # Combine
-            combined = AudioSegment.silent(duration=0)
-            for i, path in enumerate(section_paths):
-                part = AudioSegment.from_file(path)
-                pause_ms = 250 if i < len(section_paths) - 1 else 0
-                combined += part + AudioSegment.silent(duration=pause_ms)
-            
-            combined.export(FULL_AUDIO_PATH, format="mp3")
-            logging.info(f"✅ FALLBACK model success! ({fallback_model})")
-            return section_paths
-            
-        except Exception as e:
-            logging.warning(f"⚠️ {fallback_model} failed: {e}")
-            continue
-
-    # ===== FINAL FALLBACK: gTTS =====
-    logging.info("🔄 All local models failed, using gTTS...")
-    fallback_path = generate_tts_fallback(spoken, FULL_AUDIO_PATH)
-    
-    if not os.path.exists(fallback_path) or os.path.getsize(fallback_path) < 1000:
-        raise Exception("All TTS methods failed")
-
-    # Split proportionally for sectional audio
-    full_audio = AudioSegment.from_file(fallback_path)
-    total_ms = len(full_audio)
-    section_texts = [(name, text) for name, text in sections if text.strip()]
-    total_words = sum(len(t.split()) for _, t in section_texts) or 1
-
-    current_pos = 0
-    section_paths = []
-    for name, text in section_texts:
-        words = len(text.split())
-        proportion = words / total_words
-        dur_ms = max(500, int(total_ms * proportion))
+            # Generate with speaker parameter
+            tts.tts_to_file(
+                text=text,
+                speaker=speaker_id,
+                file_path=output_path,
+                speed=speed
+            )
+        else:
+            print(f"   📢 Single-speaker model (no speaker selection)")
+            # Generate without speaker parameter
+            tts.tts_to_file(
+                text=text,
+                file_path=output_path,
+                speed=speed
+            )
         
-        seg = full_audio[current_pos:current_pos + dur_ms]
-        out_path = os.path.join(TMP, f"{name}.mp3")
-        seg.export(out_path, format="mp3")
-        section_paths.append(out_path)
-        current_pos += dur_ms
-
-    # Recombine with pauses
-    combined = AudioSegment.silent(duration=0)
-    for i, path in enumerate(section_paths):
-        part = AudioSegment.from_file(path)
-        pause_ms = 250 if i < len(section_paths) - 1 else 0
-        combined += part + AudioSegment.silent(duration=pause_ms)
-    
-    combined.export(FULL_AUDIO_PATH, format="mp3")
-    logging.info("✅ gTTS fallback complete")
-    return section_paths
-
-# -------------------------
-# Main Execution
-# -------------------------
-if __name__ == "__main__":
-    # Load script.json
-    script_path = os.path.join(TMP, "script.json")
-    if not os.path.exists(script_path):
-        logging.error(f"❌ Missing script file: {script_path}")
-        sys.exit(1)
-
-    with open(script_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    hook = data.get("hook", "")
-    bullets = data.get("bullets", [])
-    cta = data.get("cta", "")
-
-    # Build spoken text
-    spoken_parts = [p.strip() for p in [hook] + bullets + [cta] if p and p.strip()]
-    spoken = ". ".join(spoken_parts)
-    
-    logging.info(f"🎙️ Preparing TTS for {len(spoken)} chars")
-    logging.info(f"   Preview: {spoken[:100]}...")
-
-    try:
-        section_paths = generate_sectional_tts()
-
-        # Verify final audio
-        if not os.path.exists(FULL_AUDIO_PATH):
-            raise Exception("Final audio not produced")
-
-        audio = AudioSegment.from_file(FULL_AUDIO_PATH)
-        actual_duration = audio.duration_seconds
-        file_size_kb = os.path.getsize(FULL_AUDIO_PATH) / 1024.0
-
-        # Duration target: 45-75s for gardening shorts
-        if actual_duration > 75:
-            logging.warning(f"⚠️ Audio too long ({actual_duration:.1f}s) — consider trimming")
-        elif actual_duration < 20:
-            logging.warning(f"⚠️ Audio very short ({actual_duration:.1f}s)")
-
-        words = len(spoken.split())
-        estimated_duration = (words / 145.0) * 60.0  # ~145 WPM for gardening
-
-        metadata = {
-            "text": spoken,
-            "words": words,
-            "estimated_duration": round(estimated_duration, 2),
-            "actual_duration": round(actual_duration, 2),
-            "file_size_kb": round(file_size_kb, 2),
-            "tts_provider": PRIMARY_MODEL,
-            "speaker": PRIMARY_SPEAKER,
-            "model_info": {
-                "primary": PRIMARY_MODEL,
-                "speaker": PRIMARY_SPEAKER,
-                "fallbacks": FALLBACK_MODELS
-            },
-            "content_type": "gardening",
-            "optimal_duration_met": 45 <= actual_duration <= 75,
-            "wpm": round(words / (actual_duration / 60.0), 1) if actual_duration > 0 else 0
-        }
-
-        with open(AUDIO_METADATA, "w", encoding="utf-8") as mf:
-            json.dump(metadata, mf, indent=2)
-
-        logging.info(f"\n📊 TTS Generation Complete!")
-        logging.info(f"   Duration: {actual_duration:.1f}s")
-        logging.info(f"   Words: {words}")
-        logging.info(f"   WPM: {metadata['wpm']}")
-        logging.info(f"   File: {FULL_AUDIO_PATH} ({file_size_kb:.1f} KB)")
-        logging.info(f"   Model: {PRIMARY_MODEL}")
-        logging.info(f"   Speaker: {PRIMARY_SPEAKER}")
-        logging.info(f"   ✅ Metadata: {AUDIO_METADATA}")
+        # Verify output
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            print(f"✅ Coqui TTS generated successfully")
+            return True
+        else:
+            print(f"⚠️ Output file invalid or too small")
+            return False
         
     except Exception as e:
-        logging.error(f"❌ TTS generation failed: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        print(f"⚠️ Coqui TTS failed: {e}")
+        return False
+
+
+def generate_audio_espeak(text, output_path, speed_factor=0.75):
+    """
+    Fallback: Generate using espeak with motivational voice settings
+    """
+    
+    print(f"🔊 Using espeak fallback...")
+    
+    content_type = os.getenv('CONTENT_TYPE', 'general')
+    
+    # espeak speed (120-140 words per minute for motivation)
+    base_speed = 135
+    speed = int(base_speed * speed_factor)
+    
+    # Deeper pitch for authority
+    pitch = 15  # Lower = deeper (range 0-99, default 50)
+    
+    # Pauses between words for dramatic effect
+    gap = 20  # milliseconds between words
+    
+    print(f"   Speed: {speed} WPM")
+    print(f"   Pitch: {pitch} (deeper voice)")
+    print(f"   Gap: {gap}ms (dramatic pauses)")
+    
+    # Replace pauses with espeak pause syntax
+    text_with_pauses = text.replace('...', ' [[500]] ')  # 500ms pause for ellipsis
+    text_with_pauses = text_with_pauses.replace('.', '. [[300]] ')  # 300ms after period
+    text_with_pauses = text_with_pauses.replace('?', '? [[400]] ')  # 400ms after question
+    
+    # Generate WAV first
+    wav_path = output_path.replace('.mp3', '_temp.wav')
+    
+    try:
+        subprocess.run([
+            'espeak-ng',
+            '-v', 'en-us',
+            '-s', str(speed),
+            '-p', str(pitch),
+            '-g', str(gap),
+            '-a', '180',  # Amplitude
+            '-w', wav_path,
+            text_with_pauses
+        ], check=True, capture_output=True)
+        
+        # Convert to MP3 with audio enhancements
+        subprocess.run([
+            'ffmpeg',
+            '-i', wav_path,
+            '-af', 'bass=g=4,dynaudnorm,acompressor=threshold=-18dB:ratio=4',  # Bass boost + normalize
+            '-codec:a', 'libmp3lame',
+            '-b:a', '192k',
+            '-y',
+            output_path
+        ], check=True, capture_output=True, stderr=subprocess.DEVNULL)
+        
+        # Clean up temp
+        if os.path.exists(wav_path):
+            os.remove(wav_path)
+        
+        print(f"✅ espeak generated with enhancements")
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ espeak failed: {e}")
+        return False
+
+
+def generate_audio_with_fallback(full_text, output_path):
+    """
+    Try Coqui TTS first, then espeak fallback
+    """
+    
+    content_type = os.getenv('CONTENT_TYPE', 'general')
+    intensity = os.getenv('INTENSITY', 'balanced')
+    
+    # ✅ Select correct male speaker based on intensity
+    speaker_id = SPEAKER_BY_INTENSITY.get(intensity, 'p326')
+    
+    # Get speed setting
+    speed = SPEED_SETTINGS.get(content_type, 0.75)
+    
+    print(f"\n🎙️ Generating motivational voiceover...")
+    print(f"   Content: {content_type}")
+    print(f"   Intensity: {intensity}")
+    print(f"   Speaker: {speaker_id} ({MALE_SPEAKERS[speaker_id]})")
+    print(f"   Speed: {speed}x")
+    
+    # Try Coqui TTS (primary)
+    success = generate_audio_coqui(full_text, output_path, speaker_id, speed)
+    
+    if success:
+        return True
+    
+    # Try fallback models
+    print(f"\n🔄 Trying fallback models...")
+    
+    try:
+        from TTS.api import TTS
+        
+        for fallback_model in FALLBACK_MODELS:
+            try:
+                print(f"   Trying: {fallback_model}")
+                tts = TTS(model_name=fallback_model, progress_bar=False)
+                
+                tts.tts_to_file(
+                    text=full_text,
+                    file_path=output_path
+                )
+                
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                    print(f"   ✅ Fallback success: {fallback_model}")
+                    return True
+                    
+            except Exception as e:
+                print(f"   ⚠️ Failed: {e}")
+                continue
+        
+    except ImportError:
+        print("⚠️ Coqui TTS not available")
+    
+    # Final fallback: espeak
+    print(f"\n🔄 Using espeak as final fallback...")
+    return generate_audio_espeak(full_text, output_path, speed)
+
+
+def optimize_audio_timing(audio_path, expected_duration, tts_sections):
+    """
+    Optimize audio timing for perfect sync with video
+    
+    Adds section markers for precise synchronization
+    """
+    
+    try:
+        # Get actual audio duration
+        result = subprocess.run([
+            'ffprobe',
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            audio_path
+        ], capture_output=True, text=True, check=True)
+        
+        actual_duration = float(result.stdout.strip())
+        
+        print(f"\n⏱️ Audio Timing Analysis:")
+        print(f"   Expected: {expected_duration:.2f}s")
+        print(f"   Actual: {actual_duration:.2f}s")
+        print(f"   Difference: {abs(actual_duration - expected_duration):.2f}s")
+        
+        # Calculate section timings based on word count distribution
+        total_words = sum(len(section['text'].split()) for section in tts_sections)
+        
+        current_time = 0.0
+        section_timings = []
+        
+        for section in tts_sections:
+            section_words = len(section['text'].split())
+            # Proportional duration based on word count
+            word_duration = (section_words / total_words) * actual_duration
+            # Add pause time
+            pause_duration = section['pause_after']
+            
+            section_duration = word_duration + pause_duration
+            
+            section_timings.append({
+                'name': section['name'],
+                'start': current_time,
+                'duration': section_duration,
+                'end': current_time + section_duration
+            })
+            
+            current_time += section_duration
+        
+        # Normalize to match actual duration (fix rounding errors)
+        total_calculated = sum(t['duration'] for t in section_timings)
+        adjustment_factor = actual_duration / total_calculated
+        
+        for timing in section_timings:
+            timing['duration'] *= adjustment_factor
+            timing['end'] = timing['start'] + timing['duration']
+        
+        # Recalculate starts
+        current = 0.0
+        for timing in section_timings:
+            timing['start'] = current
+            timing['end'] = current + timing['duration']
+            current = timing['end']
+        
+        print(f"\n📊 Optimized Section Timings:")
+        for timing in section_timings:
+            print(f"   {timing['name']}: {timing['start']:.2f}s - {timing['end']:.2f}s ({timing['duration']:.2f}s)")
+        
+        # Save timing metadata
+        timing_path = os.path.join(TMP, "audio_timing.json")
+        with open(timing_path, 'w') as f:
+            json.dump({
+                'total_duration': actual_duration,
+                'sections': section_timings,
+                'optimized': True
+            }, f, indent=2)
+        
+        print(f"\n✅ Timing optimization complete")
+        print(f"   Saved to: {timing_path}")
+        
+        return section_timings
+        
+    except Exception as e:
+        print(f"⚠️ Timing optimization failed: {e}")
+        return None
+
+
+def save_metadata(audio_path, script_data, full_text, estimated_duration):
+    """Save audio metadata for video creation"""
+    
+    try:
+        # Get actual duration
+        result = subprocess.run([
+            'ffprobe',
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            audio_path
+        ], capture_output=True, text=True, check=True)
+        
+        duration = float(result.stdout.strip())
+    except:
+        duration = estimated_duration
+    
+    word_count = len(full_text.split())
+    wpm = (word_count / duration) * 60 if duration > 0 else 0
+    
+    metadata = {
+        'audio_duration': duration,
+        'estimated_duration': estimated_duration,
+        'word_count': word_count,
+        'character_count': len(full_text),
+        'wpm': round(wpm, 1),
+        'pause_count': full_text.count('...'),
+        'content_type': script_data.get('content_type', 'general'),
+        'intensity': script_data.get('intensity', 'balanced'),
+        'speaker': SPEAKER_BY_INTENSITY.get(script_data.get('intensity', 'balanced'), 'p326'),
+        'model': PRIMARY_MODEL,
+        'optimized': True
+    }
+    
+    metadata_path = os.path.join(TMP, "audio_metadata.json")
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, indent=2)
+    
+    print(f"\n📊 Audio Metadata:")
+    print(f"   Duration: {duration:.2f}s")
+    print(f"   Words: {word_count}")
+    print(f"   WPM: {wpm:.1f}")
+    print(f"   File: {audio_path} ({os.path.getsize(audio_path) / 1024:.1f} KB)")
+    print(f"   Model: {metadata['model']}")
+    print(f"   Speaker: {metadata['speaker']}")
+    print(f"   ✅ Metadata: {metadata_path}")
+
+
+def main():
+    """Main TTS generation function"""
+    
+    print("\n" + "="*70)
+    print("🎙️ GENERATING MOTIVATIONAL VOICEOVER")
+    print("="*70)
+    
+    # Load script
+    script_data = load_script()
+    
+    print(f"📝 Script: {script_data['title']}")
+    print(f"🎯 Content Type: {script_data.get('content_type', 'general')}")
+    print(f"⚡ Intensity: {script_data.get('intensity', 'balanced')}")
+    
+    # Build TTS text with strategic pauses
+    full_text, tts_sections, estimated_duration = build_tts_text_with_pauses(script_data)
+    
+    print(f"\n🎙️ Preparing TTS for {len(full_text)} chars")
+    print(f"   Preview: {full_text[:100]}...")
+    
+    # Output path
+    output_path = os.path.join(TMP, "voice.mp3")
+    
+    # Generate audio
+    success = generate_audio_with_fallback(full_text, output_path)
+    
+    if not success or not os.path.exists(output_path):
+        print("\n❌ All TTS methods failed!")
+        exit(1)
+    
+    # Optimize timing for video sync
+    section_timings = optimize_audio_timing(output_path, estimated_duration, tts_sections)
+    
+    # Save metadata
+    save_metadata(output_path, script_data, full_text, estimated_duration)
+    
+    print("\n" + "="*70)
+    print("✅ VOICEOVER GENERATION COMPLETE!")
+    print("="*70)
+    print(f"Output: {output_path}")
+    print(f"Ready for cinematic video creation 🔥")
+
+
+if __name__ == '__main__':
+    main()
