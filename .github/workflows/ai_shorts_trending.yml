@@ -6,7 +6,7 @@ on:
       platforms:
         description: 'Platforms to upload to (comma-separated: youtube,tiktok,instagram,facebook,makecom)'
         required: false
-        default: 'youtube,tiktok,instagram,facebook'
+        default: 'youtube,facebook'
       force_all:
         description: 'Force upload to all enabled platforms'
         required: false
