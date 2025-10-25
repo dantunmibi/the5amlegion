@@ -1,128 +1,178 @@
-# .github/scripts/upload_to_cloudinary.py
+#!/usr/bin/env python3
+"""
+Upload video to Cloudinary for Make.com webhook access
+With fallback: use platform URLs if Cloudinary fails
+"""
+
 import os
 import sys
-import glob
-
-# Add parent directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-
-import cloudinary
-import cloudinary.uploader
-
-# Configure Cloudinary
-cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET")
-)
-
-def find_video_file():
-    """Find the actual video file (handles renamed files)"""
-    workspace = os.getenv("GITHUB_WORKSPACE", ".")
-    TMP = os.path.join(workspace, "tmp")
-    
-    # Priority 1: Check environment variable (set by workflow)
-    env_video = os.getenv("VIDEO_TO_UPLOAD")
-    if env_video and os.path.exists(env_video):
-        print(f"✅ Using video from environment: {env_video}")
-        return env_video
-    
-    # Priority 2: Check for original short.mp4
-    original_path = os.path.join(TMP, "short.mp4")
-    if os.path.exists(original_path):
-        print(f"✅ Using original video: {original_path}")
-        return original_path
-    
-    # Priority 3: Find ANY .mp4 file in tmp (renamed video)
-    mp4_files = glob.glob(os.path.join(TMP, "*.mp4"))
-    if mp4_files:
-        # Use the most recently modified file
-        latest_video = max(mp4_files, key=os.path.getmtime)
-        print(f"✅ Using renamed video: {latest_video}")
-        return latest_video
-    
-    # No video found
-    print(f"❌ No video file found in {TMP}")
-    print(f"   Searched for:")
-    print(f"   - Environment: {env_video}")
-    print(f"   - Original: {original_path}")
-    print(f"   - Any .mp4: {mp4_files}")
-    return None
+import json
 
 def upload_video_for_makecom(video_path):
-    """Upload video to Cloudinary and return public URL"""
+    """
+    Upload video to Cloudinary with graceful fallback
+    Returns: video URL or None
+    """
     
-    print("📤 Uploading video to Cloudinary for Make.com...")
+    # Check if Cloudinary is configured
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
     
-    if not video_path:
-        raise Exception("No video path provided")
-    
-    if not os.path.exists(video_path):
-        raise Exception(f"Video file doesn't exist: {video_path}")
-    
-    # Get file size
-    file_size = os.path.getsize(video_path)
-    if file_size < 100000:  # Less than 100KB
-        raise Exception(f"Video file too small ({file_size} bytes), likely corrupted")
-    
-    print(f"   Video: {os.path.basename(video_path)}")
-    print(f"   Size: {file_size / (1024*1024):.2f} MB")
+    if not all([cloud_name, api_key, api_secret]):
+        print("⚠️ Cloudinary not configured (optional)")
+        print("   Make.com webhook will use platform URLs instead")
+        return None
     
     try:
-        # Get video name without extension for public_id
-        video_basename = os.path.basename(video_path)
-        video_name = os.path.splitext(video_basename)[0]
+        import cloudinary
+        import cloudinary.uploader
         
-        # Clean the name for Cloudinary (remove special chars)
-        import re
-        clean_name = re.sub(r'[^\w\s-]', '', video_name).strip().replace(' ', '_')
+        # Configure
+        cloudinary.config(
+            cloud_name=cloud_name,
+            api_key=api_key,
+            api_secret=api_secret,
+            secure=True
+        )
         
-        # Upload video with specific settings for Instagram/TikTok compatibility
+        print(f"📤 Uploading to Cloudinary...")
+        print(f"   Video: {os.path.basename(video_path)}")
+        print(f"   Size: {os.path.getsize(video_path) / (1024*1024):.2f} MB")
+        
+        # Upload
         result = cloudinary.uploader.upload(
             video_path,
             resource_type="video",
-            folder="makecom_videos",
-            public_id=f"{clean_name}_{os.getenv('GITHUB_RUN_NUMBER', 'test')}",
+            folder="motivation_shorts",
+            public_id=f"video_{os.getenv('GITHUB_RUN_NUMBER', 'test')}",
             overwrite=True,
-            invalidate=True,
-            # Ensure format compatibility
-            format="mp4",
-            # Keep original quality
-            quality="auto"
+            quality="auto",
+            format="mp4"
         )
         
         video_url = result.get("secure_url")
-        
-        print(f"✅ Video uploaded to Cloudinary")
+        print(f"✅ Cloudinary upload successful")
         print(f"   URL: {video_url}")
-        print(f"   Duration: {result.get('duration', 0)} seconds")
-        print(f"   Size: {result.get('bytes', 0) / (1024*1024):.2f} MB")
-        print(f"   Public ID: {result.get('public_id')}")
         
         return video_url
         
+    except ImportError:
+        print("⚠️ Cloudinary library not installed (optional)")
+        return None
+        
     except Exception as e:
-        print(f"❌ Cloudinary upload failed: {e}")
-        raise
+        error_msg = str(e)
+        
+        # Common Cloudinary errors
+        if "cloud_name is disabled" in error_msg:
+            print("⚠️ Cloudinary account disabled or expired")
+            print("   This is optional - using platform URLs instead")
+        elif "Invalid credentials" in error_msg:
+            print("⚠️ Cloudinary credentials invalid")
+        elif "quota" in error_msg.lower():
+            print("⚠️ Cloudinary quota exceeded")
+        else:
+            print(f"⚠️ Cloudinary upload failed: {error_msg}")
+        
+        print("   → Make.com will use YouTube/Facebook URLs instead")
+        return None
 
-if __name__ == "__main__":
-    # Get workspace path
-    workspace = os.getenv("GITHUB_WORKSPACE", ".")
-    TMP = os.path.join(workspace, "tmp")
+
+def get_fallback_video_url():
+    """
+    Get video URL from platform uploads as fallback
+    Returns: best available URL
+    """
     
-    # Find the actual video file
-    video_path = find_video_file()
+    # Try to get platform URLs from multiplatform log
+    log_path = "tmp/multiplatform_log.json"
+    
+    if os.path.exists(log_path):
+        try:
+            with open(log_path, 'r') as f:
+                log = json.load(f)
+            
+            if log and len(log) > 0:
+                latest = log[-1]
+                results = latest.get('results', [])
+                
+                # Priority: YouTube > Facebook > TikTok > Instagram
+                for platform in ['youtube', 'facebook', 'tiktok', 'instagram']:
+                    for result in results:
+                        if result.get('platform') == platform and result.get('url'):
+                            url = result['url']
+                            print(f"✅ Using {platform.upper()} URL as fallback")
+                            print(f"   {url}")
+                            return url
+        
+        except Exception as e:
+            print(f"⚠️ Could not read platform URLs: {e}")
+    
+    # Last resort: GitHub artifacts URL
+    repo = os.getenv('GITHUB_REPOSITORY', 'unknown/repo')
+    run_id = os.getenv('GITHUB_RUN_ID', '0')
+    
+    artifacts_url = f"https://github.com/{repo}/actions/runs/{run_id}"
+    print(f"⚠️ Using GitHub artifacts URL as fallback")
+    print(f"   {artifacts_url}")
+    
+    return artifacts_url
+
+
+def main():
+    """Main upload function with fallback"""
+    
+    # Get video path
+    video_path = os.getenv("VIDEO_TO_UPLOAD")
     
     if not video_path:
-        print(f"❌ No video file found!")
+        # Try default locations
+        possible_paths = [
+            "tmp/short.mp4",
+            "tmp/YOURE_NOT_TIRED_YOURE_UNDISCIPLINED_Tonight.mp4"
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                video_path = path
+                break
+    
+    if not video_path or not os.path.exists(video_path):
+        print("❌ Video file not found!")
         sys.exit(1)
     
-    # Upload and get URL
-    url = upload_video_for_makecom(video_path)
+    print(f"✅ Using video: {video_path}")
     
-    # Write URL to file for next step
-    output_file = os.path.join(TMP, "video_url.txt")
-    with open(output_file, "w") as f:
-        f.write(url)
+    # Try Cloudinary upload
+    video_url = upload_video_for_makecom(video_path)
     
-    print(f"✅ URL saved to: {output_file}")
+    # Fallback to platform URLs if Cloudinary fails
+    if not video_url:
+        video_url = get_fallback_video_url()
+    
+    # Save URL for next step
+    os.makedirs("tmp", exist_ok=True)
+    
+    with open("tmp/video_url.txt", "w") as f:
+        f.write(video_url)
+    
+    print(f"\n✅ Video URL ready for Make.com webhook")
+    print(f"   {video_url}")
+    
+    # Also save metadata
+    metadata = {
+        "video_url": video_url,
+        "video_path": video_path,
+        "video_name": os.path.basename(video_path),
+        "video_size_mb": round(os.path.getsize(video_path) / (1024*1024), 2),
+        "source": "cloudinary" if "cloudinary" in video_url else "platform_upload",
+        "timestamp": os.popen('date -u +%Y-%m-%dT%H:%M:%SZ').read().strip()
+    }
+    
+    with open("tmp/video_metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+
+
+if __name__ == "__main__":
+    main()

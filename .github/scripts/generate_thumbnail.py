@@ -71,6 +71,7 @@ def get_font_path(size=90, bold=True):
 
 
 # Load script
+# Load script
 with open(os.path.join(TMP, "script.json"), "r", encoding="utf-8") as f:
     data = json.load(f)
 
@@ -80,26 +81,42 @@ hook = data.get("hook", "")
 key_phrase = data.get("key_phrase", "")
 content_type = data.get("content_type", "general")
 
-# 🔥 PRIORITY: Use key_phrase (power words), then hook, then title
-if key_phrase and len(key_phrase) > 3:
-    display_text = key_phrase.upper()  # ALWAYS CAPS
-    print(f"🔥 Using KEY PHRASE for thumbnail: {display_text}")
+# 🔥 SMART TEXT SELECTION (FIXED)
+display_text = None
+
+# Priority 1: Key phrase (if substantial)
+if key_phrase and len(key_phrase) > 5:
+    display_text = key_phrase
+    print(f"🔥 Using KEY PHRASE: {display_text}")
+
+# Priority 2: Hook (if shorter and substantial)
 elif hook and len(hook) > 5 and len(hook) < len(title):
-    display_text = hook.upper()
-    print(f"🎯 Using hook for thumbnail: {display_text}")
+    display_text = hook
+    print(f"🎯 Using HOOK: {display_text}")
+
+# Priority 3: Title
 else:
-    display_text = title.upper()
-    print(f"📝 Using title for thumbnail: {display_text}")
+    display_text = title
+    print(f"📝 Using TITLE: {display_text}")
 
-print(f"📊 Text source - Key Phrase: {len(key_phrase)} | Hook: {len(hook)} | Title: {len(title)}")
+# NOW uppercase the selected text
+display_text = display_text.upper()
 
-# Extract CAPS words from title if key_phrase not available
-import re
+# Try to extract CAPS words ONLY if we don't have a key_phrase
 if not key_phrase or len(key_phrase) < 5:
-    caps_match = re.search(r'\b[A-Z]{2,}(?:\s+[A-Z]{2,})*\b', title)
-    if caps_match:
-        display_text = caps_match.group(0)
-        print(f"🔥 Extracted CAPS from title: {display_text}")
+    # Extract CAPS words from the display_text to enhance it
+    caps_words = re.findall(r'\b[A-Z]{2,}\b', display_text)
+    
+    # If we found a short punchy CAPS phrase (2-5 words), use it instead
+    if caps_words and 2 <= len(caps_words) <= 5:
+        caps_phrase = ' '.join(caps_words)
+        # Only use it if it's significantly shorter (more impactful)
+        if len(caps_phrase) < len(display_text) * 0.6:
+            display_text = caps_phrase
+            print(f"💥 Extracted CAPS PHRASE: {display_text}")
+
+print(f"📊 Final thumbnail text: {display_text}")
+print(f"   Length: {len(display_text)} chars")
 
 # Canvas dimensions
 w = 720
