@@ -21,6 +21,7 @@ from time import sleep
 import time
 import textwrap
 import random
+import re
 
 TMP = os.getenv("GITHUB_WORKSPACE", ".") + "/tmp"
 

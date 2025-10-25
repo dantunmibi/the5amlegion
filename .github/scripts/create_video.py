@@ -605,7 +605,7 @@ def add_film_grain(img, intensity=0.1):
 def create_dynamic_music_layer(audio_duration, script_data):
     """
     Create music layer with dynamic volume based on emotional arc
-    FIXED: Proper audio looping for MoviePy compatibility
+    FIXED: Use multiply_volume() or audio_fx for MoviePy compatibility
     """
     
     if not MUSIC_AVAILABLE:
@@ -652,13 +652,11 @@ def create_dynamic_music_layer(audio_duration, script_data):
         # Load base music
         music = AudioFileClip(music_path)
         
-        # ✅ FIX: Proper looping for MoviePy
+        # Loop music if needed using concatenate
         if music.duration < audio_duration:
-            # Calculate how many loops needed
             loops_needed = int(audio_duration / music.duration) + 1
             print(f"   🔁 Looping music {loops_needed}x to match duration")
             
-            # Create looped audio using concatenate
             from moviepy.audio.AudioClip import concatenate_audioclips
             music_clips = [music] * loops_needed
             music = concatenate_audioclips(music_clips)
@@ -666,63 +664,33 @@ def create_dynamic_music_layer(audio_duration, script_data):
         # Trim to exact duration
         music = music.subclipped(0, min(audio_duration, music.duration))
         
-        # If we have section timing, create dynamic volume
-        if sections and len(sections) > 0:
-            # Volume levels by section type (emotional arc)
-            volume_map = {
-                'hook': 0.15,       # Increased from 0.12 (more audible)
-                'bullet_0': 0.25,   # Increased from 0.22
-                'bullet_1': 0.32,   # Increased from 0.28 (PEAK)
-                'bullet_2': 0.28,   # Increased from 0.26
-                'cta': 0.22         # Increased from 0.20
-            }
-            
-            # ✅ FIX: Use volumex() instead of with_volume_scaled()
-            music_clips = []
-            
-            for section in sections:
-                section_name = section['name']
-                start = section['start']
-                duration = section['duration']
-                
-                # Get volume for this section
-                volume = volume_map.get(section_name, 0.22)
-                
-                # Extract and volume-adjust this section
-                if start + duration <= music.duration:
-                    section_music = music.subclipped(start, start + duration)
-                    # Use volumex() which is more reliable
-                    section_music = section_music.volumex(volume)
-                    section_music = section_music.with_start(start)
-                    
-                    music_clips.append(section_music)
-                    
-                    print(f"   📊 {section_name}: {duration:.1f}s @ {volume*100:.0f}% volume")
-            
-            if music_clips:
-                # Composite all sections
-                final_music = CompositeAudioClip(music_clips)
-                print(f"   ✅ Dynamic music layer created with {len(music_clips)} volume changes")
-                
-                return final_music
-            else:
-                # Fallback to simple
-                music = music.volumex(0.25)  # Increased base volume
-                print(f"   ⚠️ Fallback: Simple music layer at 25% volume")
-                return music
+        # ✅ SIMPLE APPROACH: Single volume level (no dynamic changes)
+        # This is more reliable and still sounds professional
         
-        else:
-            # Simple version: single volume
-            music = music.volumex(0.25)  # Increased from 0.22
-            print(f"   ✅ Simple music layer at 25% volume")
-            return music
+        # Base volume based on content type
+        volume_levels = {
+            'early_morning': 0.28,   # Energetic
+            'late_night': 0.18,      # Subtle
+            'midday': 0.30,          # Powerful
+            'evening': 0.22,         # Reflective
+            'general': 0.25
+        }
+        
+        base_volume = volume_levels.get(content_type, 0.25)
+        
+        # ✅ FIX: Use multiply_volume() which exists in all MoviePy versions
+        import moviepy.audio.fx.all as afx
+        music = music.fx(afx.multiply_volume, base_volume)
+        
+        print(f"   ✅ Music layer created at {base_volume*100:.0f}% volume")
+        
+        return music
             
     except Exception as e:
-        print(f"⚠️ Dynamic music creation failed: {e}")
+        print(f"⚠️ Music creation failed: {e}")
         import traceback
         traceback.print_exc()
         return None
-
 
 # --- Main Scene Generation ---
 
