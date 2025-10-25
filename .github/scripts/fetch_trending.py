@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🔥 Fetch Trending Motivational Topics - ROBUST VERSION
-Multi-source trending data collector for motivation niche
-Sources: Google Trends, Reddit, YouTube, Evergreen motivational themes
+🔍 Fetch Trending Mystery Topics - ROBUST VERSION
+Multi-source trending data collector for mystery niche
+Sources: Google Trends, Reddit, YouTube, Evergreen mystery themes
 """
 
 import json
@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup
 # Configure Gemini
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# Model selection (same as reference)
+# Model selection (same as your original)
 try:
     models = genai.list_models()
     model_name = None
@@ -44,12 +44,12 @@ TMP = os.getenv("GITHUB_WORKSPACE", ".") + "/tmp"
 os.makedirs(TMP, exist_ok=True)
 
 
-def get_google_trends_motivation() -> List[str]:
-    """Get real trending motivational searches from Google Trends"""
+def get_google_trends_mystery() -> List[str]:
+    """Get real trending mystery searches from Google Trends"""
     try:
         from pytrends.request import TrendReq
         
-        print(f"🔥 Fetching Google Trends (Motivation & Discipline)...")
+        print(f"🔍 Fetching Google Trends (Mysteries & Unsolved Cases)...")
         
         try:
             pytrends = TrendReq(hl='en-US', tz=360, timeout=(10, 25))
@@ -59,39 +59,49 @@ def get_google_trends_motivation() -> List[str]:
         
         relevant_trends = []
         
-        # 🔥 MOTIVATION-SPECIFIC KEYWORDS
-        motivational_topics = [
-            # Core motivation
-            'motivation quotes',
-            'daily motivation', 
-            'morning motivation',
+        # 🔍 MYSTERY-SPECIFIC KEYWORDS
+        mystery_topics = [
+            # Unsolved mysteries (general)
+            'unsolved mysteries',
+            'true crime unsolved',
+            'cold case',
+            'missing person case',
             
-            # Discipline & habits
-            'discipline',
-            '5am club',
-            'morning routine',
-            'waking up early',
+            # Famous cases
+            'bermuda triangle',
+            'db cooper',
+            'zodiac killer',
+            'dyatlov pass',
+            'flight 19',
+            'malaysia airlines mh370',
             
-            # Success & mindset
-            'success mindset',
-            'mental toughness',
-            'growth mindset',
-            'self improvement',
+            # True crime
+            'true crime documentary',
+            'unsolved murder',
+            'cold case solved',
+            'criminal investigation',
             
-            # Influencers (trending)
-            'david goggins',
-            'jocko willink',
-            'andrew huberman',
-            'jordan peterson motivation',
+            # Historical mysteries
+            'ancient mysteries',
+            'unexplained discoveries',
+            'archaeological mystery',
+            'voynich manuscript',
+            'antikythera mechanism',
             
-            # Actionable
-            'how to be disciplined',
-            'how to stop procrastinating',
-            'how to wake up at 5am',
-            'how to build habits'
+            # Paranormal/unexplained
+            'unexplained disappearance',
+            'strange phenomena',
+            'conspiracy theories',
+            'declassified documents',
+            
+            # Actionable (people searching for content)
+            'mystery documentary',
+            'unsolved cases 2024',
+            'true crime podcast',
+            'mystery youtube'
         ]
         
-        for topic in motivational_topics:
+        for topic in mystery_topics:
             try:
                 print(f"   🔍 Searching trends for: {topic}")
                 pytrends.build_payload([topic], timeframe='now 7-d', geo='US')
@@ -103,8 +113,8 @@ def get_google_trends_motivation() -> List[str]:
                     top_queries = related[topic]['top']
                     if top_queries is not None and not top_queries.empty:
                         for query in top_queries['query'].head(5):
-                            # Filter for motivational relevance
-                            if len(query) > 10 and is_motivational_query(query):
+                            # Filter for mystery relevance
+                            if len(query) > 10 and is_mystery_query(query):
                                 relevant_trends.append(query)
                                 print(f"      ✓ {query}")
                 
@@ -113,7 +123,7 @@ def get_google_trends_motivation() -> List[str]:
                     rising_queries = related[topic]['rising']
                     if rising_queries is not None and not rising_queries.empty:
                         for query in rising_queries['query'].head(3):
-                            if len(query) > 10 and is_motivational_query(query):
+                            if len(query) > 10 and is_mystery_query(query):
                                 relevant_trends.append(f"{query} (🔥 RISING)")
                                 print(f"      🔥 {query} (RISING)")
                 
@@ -123,7 +133,7 @@ def get_google_trends_motivation() -> List[str]:
                 print(f"   ⚠️ Failed for '{topic}': {str(e)[:50]}...")
                 continue
         
-        print(f"✅ Found {len(relevant_trends)} motivational trends from Google")
+        print(f"✅ Found {len(relevant_trends)} mystery trends from Google")
         return relevant_trends[:20]
         
     except ImportError:
@@ -135,24 +145,27 @@ def get_google_trends_motivation() -> List[str]:
         return []
 
 
-def is_motivational_query(query: str) -> bool:
-    """Filter for motivational relevance"""
+def is_mystery_query(query: str) -> bool:
+    """Filter for mystery relevance"""
     query_lower = query.lower()
     
-    # Good motivational keywords
+    # Good mystery keywords
     good_keywords = [
-        'motivation', 'discipline', 'mindset', 'success', 'habit',
-        'routine', 'morning', '5am', 'wake up', 'productivity',
-        'self improvement', 'mental', 'tough', 'grind', 'hustle',
-        'goal', 'achievement', 'winner', 'champion', 'transform',
-        'goggins', 'jocko', 'peterson', 'huberman'
+        'mystery', 'unsolved', 'disappear', 'missing', 'cold case',
+        'murder', 'killer', 'crime', 'investigation', 'detective',
+        'conspiracy', 'unexplained', 'strange', 'phenomenon',
+        'ancient', 'artifact', 'discovery', 'declassified',
+        'cipher', 'code', 'secret', 'hidden', 'vanish',
+        'bermuda', 'zodiac', 'cooper', 'flight 19', 'dyatlov',
+        'true crime', 'documentary', 'case', 'evidence'
     ]
     
-    # Avoid non-motivational topics
+    # Avoid non-mystery topics
     bad_keywords = [
-        'song', 'music', 'movie', 'trailer', 'meme', 'funny',
-        'game', 'anime', 'celebrity', 'news', 'politics',
-        'price', 'buy', 'shop', 'sale'
+        'song', 'music', 'movie', 'trailer', 'game', 'anime',
+        'celebrity gossip', 'dating', 'relationship',
+        'recipe', 'workout', 'fashion', 'makeup',
+        'price', 'buy', 'shop', 'sale', 'review'
     ]
     
     has_good = any(kw in query_lower for kw in good_keywords)
@@ -161,21 +174,25 @@ def is_motivational_query(query: str) -> bool:
     return has_good and not has_bad
 
 
-def get_reddit_motivation_trends() -> List[str]:
-    """Get trending posts from motivational subreddits"""
+def get_reddit_mystery_trends() -> List[str]:
+    """Get trending posts from mystery/true crime subreddits"""
     try:
-        print("🔥 Fetching Reddit motivation trends...")
+        print("🔍 Fetching Reddit mystery trends...")
         
-        # 🔥 MOTIVATION-SPECIFIC SUBREDDITS
+        # 🔍 MYSTERY-SPECIFIC SUBREDDITS
         subreddits = [
-            'GetMotivated',      # 20M+ members
-            'GetDisciplined',    # 1M+ members
-            'selfimprovement',   # 800K+ members
-            'DecidingToBeBetter',# 300K+ members
-            'productivity',      # 200K+ members
-            'NonZeroDay',        # Accountability
-            'motivation',        # General motivation
-            'DisciplineAndGrit'  # Hardcore discipline
+            'UnresolvedMysteries',    # 1.9M+ members (GOLD MINE)
+            'TrueCrime',              # 500K+ members
+            'UnexplainedPhotos',      # 300K+ members
+            'HighStrangeness',        # 400K+ members
+            'conspiracy',             # 2M+ (filter for declassified only)
+            'ColdCases',              # True crime cold cases
+            'Mystery',                # General mysteries
+            'CrimeScene',             # Crime investigation
+            'serialkillers',          # True crime (famous cases)
+            'Missing411',             # Unexplained disappearances
+            'AlternativeHistory',     # Historical mysteries
+            'AncientAliens'           # Ancient mysteries (filter for facts)
         ]
         
         trends = []
@@ -199,31 +216,35 @@ def get_reddit_motivation_trends() -> List[str]:
                         title = post_data.get('title', '')
                         upvotes = post_data.get('ups', 0)
                         
-                        # 🔥 MOTIVATION-SPECIFIC FILTERING
+                        # 🔍 MYSTERY-SPECIFIC FILTERING
                         good_phrases = [
-                            # Actionable
-                            'how i', 'how to', 'this changed', 'stopped', 'started',
-                            'i finally', 'after years', 'my journey',
+                            # Unsolved cases
+                            'unsolved', 'mystery', 'never solved', 'still unknown',
+                            'no explanation', 'unexplained', 'strange case',
                             
-                            # Discipline themes
-                            'discipline', 'routine', 'habit', 'consistency',
-                            'wake up', 'morning', '5am', 'early',
+                            # Disappearances
+                            'disappeared', 'vanished', 'missing', 'never found',
+                            'no trace', 'last seen',
                             
-                            # Mindset themes
-                            'mindset', 'focus', 'mental', 'overcame',
-                            'transformation', 'changed my life',
+                            # Investigations
+                            'case of', 'investigation', 'evidence', 'clues',
+                            'what happened to', 'the truth about',
                             
-                            # Advice/tips
-                            'tip', 'advice', 'strategy', 'method',
-                            'secret', 'truth', 'lesson', 'learned'
+                            # Historical
+                            'ancient', 'artifact', 'discovery', 'archaeological',
+                            'declassified', 'documents reveal',
+                            
+                            # True crime
+                            'murder', 'killer', 'victim', 'suspect',
+                            'cold case', 'true crime'
                         ]
                         
-                        # Reject vague/unhelpful posts
+                        # Reject irrelevant posts
                         bad_phrases = [
-                            'should i', 'can someone', 'need help', 'feeling lost',
-                            'what do', 'how do i start', 'depressed', 'suicide',
-                            'rant', 'venting', 'anybody else', 'dae',
-                            'am i the only', 'unpopular opinion'
+                            'what do you think', 'unpopular opinion', 'am i the only',
+                            'dae', 'discussion thread', 'meta', 'subreddit',
+                            'looking for', 'can someone help', 'does anyone know',
+                            'rant', 'off topic', 'question about', 'eli5'
                         ]
                         
                         title_lower = title.lower()
@@ -243,7 +264,7 @@ def get_reddit_motivation_trends() -> List[str]:
                                 viral_marker = " 🔥" if is_viral else ""
                                 print(f"      ✓ ({upvotes} ↑) {clean_title[:70]}{viral_marker}")
                     
-                    print(f"      Found {posts_found} motivational posts")
+                    print(f"      Found {posts_found} mystery posts")
                 else:
                     print(f"      ⚠️ Status {response.status_code}")
                 
@@ -279,18 +300,21 @@ def clean_reddit_title(title: str) -> str:
     return title
 
 
-def get_youtube_motivation_trends() -> List[str]:
-    """Scrape trending motivational video topics from YouTube"""
+def get_youtube_mystery_trends() -> List[str]:
+    """Scrape trending mystery video topics from YouTube"""
     try:
-        print("🔥 Fetching YouTube trending motivational videos...")
+        print("🔍 Fetching YouTube trending mystery videos...")
         
-        # Search for recent viral motivational videos
+        # Search for recent viral mystery videos
         search_queries = [
-            'motivational speech',
-            'morning routine 5am',
-            'discipline motivation',
-            'david goggins motivation',
-            'success mindset'
+            'unsolved mystery',
+            'true crime case',
+            'cold case documentary',
+            'unexplained disappearance',
+            'mysterious discovery',
+            'declassified documents',
+            'historical mystery',
+            'conspiracy theory explained'
         ]
         
         trends = []
@@ -314,7 +338,7 @@ def get_youtube_motivation_trends() -> List[str]:
                     
                     found_count = 0
                     for title in matches[:10]:
-                        if is_motivational_title(title) and len(title) > 15:
+                        if is_mystery_title(title) and len(title) > 15:
                             trends.append(title)
                             found_count += 1
                             print(f"      ✓ {title[:70]}")
@@ -335,19 +359,21 @@ def get_youtube_motivation_trends() -> List[str]:
         return []
 
 
-def is_motivational_title(title: str) -> bool:
-    """Check if YouTube title is motivational content"""
+def is_mystery_title(title: str) -> bool:
+    """Check if YouTube title is mystery content"""
     title_lower = title.lower()
     
     good_keywords = [
-        'motivation', 'discipline', 'wake up', '5am', 'morning',
-        'success', 'mindset', 'transform', 'change your life',
-        'routine', 'habit', 'goggins', 'jocko', 'speech'
+        'mystery', 'unsolved', 'disappear', 'missing', 'strange',
+        'unexplained', 'cold case', 'true crime', 'investigation',
+        'conspiracy', 'declassified', 'secret', 'hidden',
+        'ancient', 'artifact', 'discovery', 'phenomenon'
     ]
     
     bad_keywords = [
-        'react', 'reaction', 'review', 'analysis', 'breakdown',
-        'full podcast', 'interview', 'compilation', 'playlist'
+        'react', 'reaction', 'review', 'commentary', 'live stream',
+        'full podcast', '2 hours', '3 hours', 'compilation',
+        'all episodes', 'season', 'trailer', 'teaser'
     ]
     
     has_good = any(kw in title_lower for kw in good_keywords)
@@ -356,105 +382,125 @@ def is_motivational_title(title: str) -> bool:
     return has_good and not has_bad
 
 
-def get_evergreen_motivational_themes() -> List[str]:
-    """Evergreen motivational topics that always perform well"""
+def get_evergreen_mystery_themes() -> List[str]:
+    """Evergreen mystery topics that always perform well"""
     
     current_month = datetime.now().strftime('%B')
     current_hour = datetime.now().hour
+    current_day = datetime.now().day
     
-    # 🔥 TIME-SPECIFIC EVERGREEN THEMES
+    # 🔍 TIME-SPECIFIC EVERGREEN THEMES
     evergreen = []
     
-    # Morning themes (4-10 AM)
-    if 4 <= current_hour <= 10:
+    # Evening prime time themes (7-9 PM)
+    if 18 <= current_hour <= 21:
         evergreen.extend([
-            "Why Successful People Wake Up at 5 AM (The Morning Advantage)",
-            "The First Hour of Your Day Determines Everything",
-            "Stop Hitting Snooze: The Discipline That Changes Lives",
-            "What Champions Do Before 6 AM (Morning Routine Secrets)",
-            "Your Morning Routine Is Your Life Routine"
+            "Flight 19: The Bermuda Triangle Mystery That Defies Physics",
+            "DB Cooper: The Only Unsolved Airplane Hijacking in History",
+            "Malaysia Airlines MH370: The Disappearance That Makes No Sense",
+            "The Zodiac Killer: Why His Code Took 51 Years to Crack",
+            "The Mary Celeste: Ghost Ship Found With Nobody Aboard"
         ])
     
-    # Late night themes (10 PM - 3 AM)
-    elif current_hour >= 22 or current_hour <= 3:
+    # Late night themes (10 PM - 2 AM) - More unsettling
+    elif current_hour >= 22 or current_hour <= 2:
         evergreen.extend([
-            "Reading This at 2 AM? Here's What You Need to Hear",
-            "You Can't Sleep Because You Know You're Wasting Time",
-            "Tomorrow Starts Tonight: Set Your Alarm for 5 AM Now",
-            "The 2 AM Truth: Your Future Self Is Watching",
-            "Stop Scrolling Start Living: The Late Night Wake-Up Call"
+            "The Dyatlov Pass Incident: 9 Hikers Found Dead in Unexplained Circumstances",
+            "Elisa Lam: The Elevator Footage That Still Can't Be Explained",
+            "The Somerton Man: Dead Body With No Identity and a Secret Code",
+            "The Black Dahlia: The Murder That Haunts LA 77 Years Later",
+            "The Boy in the Box: America's Unknown Child"
         ])
     
-    # Daytime themes (general)
+    # General/daytime themes
     else:
         evergreen.extend([
-            "Stop Making Excuses and Start Making Progress",
-            "Nobody's Coming to Save You (So Save Yourself)",
-            "Your Comfort Zone Is Killing Your Dreams",
-            "The Brutal Truth About Overnight Success",
-            "Why Hard Work Will Always Beat Talent"
+            "The Voynich Manuscript: A Book No One Can Read",
+            "The Antikythera Mechanism: 2,000-Year-Old Computer That Shouldn't Exist",
+            "Göbekli Tepe: The Temple Built 6,000 Years Before Stonehenge",
+            "The Nazca Lines: How Did They Draw These Without Seeing From Above?",
+            "The Piri Reis Map: Antarctica Before the Ice?"
         ])
     
-    # 🔥 ALWAYS-RELEVANT MOTIVATIONAL THEMES
+    # 🔍 ALWAYS-RELEVANT MYSTERY THEMES
     evergreen.extend([
-        "You're Not Tired You're Undisciplined (Wake Up Call)",
-        "Discipline Beats Motivation Every Single Time",
-        "While You Sleep They Grind: The Success Formula",
-        "Stop Negotiating With Yourself: Just Do It Anyway",
-        "The Old You Dies Today (Identity Transformation)",
-        "How to Build Unbreakable Mental Toughness",
-        "The Difference Between Winners and Losers",
-        "What You Do When You Don't Feel Like It Defines You",
-        "Your Excuses Are Valid But They're Keeping You Broke",
-        "The 1% Rule: How Small Actions Create Big Results"
+        # Famous disappearances
+        "Amelia Earhart: The Disappearance That Still Baffles Experts",
+        "The Lost Colony of Roanoke: 115 People Vanished Overnight",
+        "The Philadelphia Experiment: What Really Happened to USS Eldridge?",
+        
+        # True crime classics
+        "Jack the Ripper: Why We Still Don't Know His Identity",
+        "The Cleveland Torso Murders: 12 Victims Never Identified",
+        "The Axeman of New Orleans: The Serial Killer Who Wrote Letters",
+        
+        # Conspiracy facts (declassified)
+        "MKUltra: CIA Mind Control Experiments Were Real (Declassified Proof)",
+        "Operation Northwoods: The False Flag Plan That Was Approved",
+        "The Tuskegee Experiment: Medical Conspiracy That Lasted 40 Years",
+        
+        # Historical enigmas
+        "The Baghdad Battery: 2,000-Year-Old Electricity?",
+        "The Shroud of Turin: Science Can't Explain the Image",
+        "Oak Island Money Pit: The Treasure Hunt That's Killed 6 People",
+        
+        # Recent mysteries
+        "The Wow! Signal: The Space Message We Never Decoded",
+        "The Phoenix Lights: Thousands Saw It But Officials Deny It",
+        "The Hessdalen Lights: Unexplained Phenomenon Still Happening Today"
     ])
     
-    # 🔥 SEASONAL/MONTHLY ADJUSTMENTS
+    # 🔍 SEASONAL/MONTHLY ADJUSTMENTS
     monthly_themes = {
-        'January': [
-            "New Year Same Excuses? Not This Time (2024 Discipline)",
-            "How to Actually Keep Your New Year's Resolutions",
-            "January 1st vs January 31st: The Discipline Gap"
-        ],
-        'September': [
-            "Back to School Back to Grind: Student Success Mindset",
-            "Fall Season Fall Into Discipline (Autumn Motivation)"
+        'October': [
+            "The 13 Most Terrifying Unsolved Mysteries (Halloween Special)",
+            "Real Hauntings That Have Documented Evidence",
+            "The Most Disturbing Cold Cases Still Open Today"
         ],
         'December': [
-            "Finish The Year Strong: December Discipline",
-            "New Year New You Starts Now (December Prep)"
+            "Mysteries Solved in 2024: What We Finally Learned",
+            "The Year's Most Shocking Declassified Documents",
+            "2024's Strangest Unsolved Disappearances"
+        ],
+        'January': [
+            "Cold Cases That Might Finally Be Solved in 2024",
+            "New Evidence in Old Mysteries: 2024 Updates"
         ]
     }
     
     if current_month in monthly_themes:
         evergreen.extend(monthly_themes[current_month])
     
-    print(f"✅ Loaded {len(evergreen)} evergreen motivational themes (time-optimized)")
+    # Anniversary-based mysteries (if specific dates)
+    if current_month == 'December' and current_day == 5:
+        evergreen.insert(0, "Flight 19: Today Marks the Anniversary of the Bermuda Triangle Mystery")
+    
+    print(f"✅ Loaded {len(evergreen)} evergreen mystery themes (time-optimized)")
     return evergreen
 
 
-def get_real_motivational_trends() -> List[str]:
-    """Combine multiple FREE sources for real motivational trending topics"""
+def get_real_mystery_trends() -> List[str]:
+    """Combine multiple FREE sources for real mystery trending topics"""
     
     print("\n" + "="*70)
-    print("🔥 FETCHING REAL-TIME MOTIVATIONAL TRENDS (MULTI-SOURCE)")
+    print("🔍 FETCHING REAL-TIME MYSTERY TRENDS (MULTI-SOURCE)")
     print("="*70)
     
     all_trends = []
     source_counts = {}
     
-    # Source 1: Google Trends (motivation-specific)
+    # Source 1: Google Trends (mystery-specific)
     try:
-        google_trends = get_google_trends_motivation()
+        google_trends = get_google_trends_mystery()
         all_trends.extend(google_trends)
         source_counts['Google Trends'] = len(google_trends)
     except Exception as e:
         print(f"⚠️ Google Trends error: {e}")
         source_counts['Google Trends'] = 0
     
-    # Source 2: Reddit Motivation Communities
+    # Source 2: Reddit Mystery Communities
     try:
-        reddit_trends = get_reddit_motivation_trends()
+        reddit_trends = get_reddit_mystery_trends()
         all_trends.extend(reddit_trends)
         source_counts['Reddit'] = len(reddit_trends)
     except Exception as e:
@@ -463,7 +509,7 @@ def get_real_motivational_trends() -> List[str]:
     
     # Source 3: YouTube Trending
     try:
-        youtube_trends = get_youtube_motivation_trends()
+        youtube_trends = get_youtube_mystery_trends()
         all_trends.extend(youtube_trends)
         source_counts['YouTube'] = len(youtube_trends)
     except Exception as e:
@@ -471,7 +517,7 @@ def get_real_motivational_trends() -> List[str]:
         source_counts['YouTube'] = 0
     
     # Source 4: Evergreen themes (ALWAYS INCLUDED)
-    evergreen = get_evergreen_motivational_themes()
+    evergreen = get_evergreen_mystery_themes()
     all_trends.extend(evergreen)
     source_counts['Evergreen'] = len(evergreen)
     
@@ -494,7 +540,7 @@ def get_real_motivational_trends() -> List[str]:
     print(f"\n📊 TREND SOURCES SUMMARY:")
     for source, count in source_counts.items():
         print(f"   • {source}: {count} topics")
-    print(f"\n   TOTAL UNIQUE: {len(unique_trends)} motivational trends")
+    print(f"\n   TOTAL UNIQUE: {len(unique_trends)} mystery trends")
     
     return unique_trends[:30]  # Top 30
 
@@ -513,12 +559,12 @@ def similar_strings(s1: str, s2: str) -> float:
     return intersection / union if union > 0 else 0.0
 
 
-def filter_and_rank_motivational_trends(trends: List[str], content_type: str) -> List[Dict[str, Any]]:
-    """Use Gemini to filter and rank motivational trends for viral potential"""
+def filter_and_rank_mystery_trends(trends: List[str], content_type: str) -> List[Dict[str, Any]]:
+    """Use Gemini to filter and rank mystery trends for viral potential"""
     
     if not trends:
         print("⚠️ No trends to filter, using fallback...")
-        return get_fallback_motivational_ideas(content_type)
+        return get_fallback_mystery_ideas(content_type)
     
     print(f"\n🤖 Using Gemini to rank {len(trends)} trends for {content_type} content...")
     
@@ -526,40 +572,35 @@ def filter_and_rank_motivational_trends(trends: List[str], content_type: str) ->
     current_time = datetime.now().strftime('%I %p')
     current_day = datetime.now().strftime('%A')
     
-    # 🔥 CONTENT TYPE SPECIFIC GUIDANCE
+    # 🔍 CONTENT TYPE SPECIFIC GUIDANCE
     content_type_guidance = {
-        'early_morning': {
-            'focus': '5 AM wake-ups, morning routines, discipline over comfort',
-            'emotion': 'Aggressive, commanding, military-style motivation',
-            'audience': 'Early risers, discipline seekers, 5 AM warriors'
+        'evening_prime': {
+            'focus': 'Famous mysteries, high intrigue, accessible stories',
+            'emotion': 'Intriguing, mysterious, documentary-style',
+            'audience': 'Evening viewers unwinding, ready for intrigue, casual mystery fans'
         },
         'late_night': {
-            'focus': '2 AM accountability, guilt about wasted day, tomorrow starts now',
-            'emotion': 'Intimate, honest, brother-to-brother real talk',
-            'audience': 'Late night scrollers, people with regret, insomniacs questioning life'
+            'focus': 'Darker unsolved cases, disturbing mysteries, unsettling stories',
+            'emotion': 'Chilling, serious, thought-provoking, keeps them awake',
+            'audience': 'Late night scrollers who can\'t sleep, want something unsettling, deep mystery fans'
         },
-        'midday': {
-            'focus': 'No excuses grind, push through afternoon slump, keep going',
-            'emotion': 'Urgent, no-nonsense, direct commands',
-            'audience': 'Procrastinators, midday break scrollers, people losing momentum'
-        },
-        'evening': {
-            'focus': 'Daily reflection, what did you accomplish, prepare for tomorrow',
-            'emotion': 'Reflective but powerful, accountability-focused',
-            'audience': 'Evening planners, people reviewing their day, goal-setters'
+        'weekend_binge': {
+            'focus': 'Complex layered mysteries, historical enigmas, deep rabbit holes',
+            'emotion': 'Documentary deep-dive, detailed, satisfying depth',
+            'audience': 'Weekend viewers with time, ready for complexity, true crime enthusiasts'
         },
         'general': {
-            'focus': 'Discipline, mindset shifts, success principles',
-            'emotion': 'Balanced intensity, inspirational but firm',
-            'audience': 'General motivation seekers, self-improvement enthusiasts'
+            'focus': 'Balanced mix of disappearances, crimes, and historical mysteries',
+            'emotion': 'Mysterious but accessible, serious but not too dark',
+            'audience': 'General mystery enthusiasts, curious viewers, binge-watchers'
         }
     }
     
     guidance = content_type_guidance.get(content_type, content_type_guidance['general'])
     
-    prompt = f"""You are a viral motivational content strategist analyzing REAL trending topics.
+    prompt = f"""You are a viral mystery content strategist analyzing REAL trending topics for YouTube Shorts.
 
-REAL TRENDING MOTIVATIONAL TOPICS (from Google/Reddit/YouTube/Evergreen):
+REAL TRENDING MYSTERY TOPICS (from Google/Reddit/YouTube/Evergreen):
 {chr(10).join(f"{i+1}. {t}" for i, t in enumerate(trends[:30]))}
 
 CURRENT CONTEXT:
@@ -571,35 +612,42 @@ CURRENT CONTEXT:
 - Emotional Tone: {guidance['emotion']}
 - Target Audience: {guidance['audience']}
 
-TASK: Select TOP 5 topics that would make MOST VIRAL YouTube Shorts for the {content_type} time slot.
+TASK: Select TOP 5 mystery topics that would make MOST VIRAL YouTube Shorts for the {content_type} time slot.
 
 SELECTION CRITERIA (in order of importance):
-1. **Emotional Impact**: Must hit deep pain points (wasted potential, fear, regret)
-2. **Immediate Action**: Must have clear "do this RIGHT NOW" moment
-3. **Identity Shift**: Must show transformation from old self to new self
-4. **Share Potential**: Must make people tag friends who need this
-5. **Time Relevance**: Must fit {content_type} audience state
-6. **Specificity**: Prefer specific actions over vague advice
-7. **Urgency**: Must create "I need to change NOW" feeling
+1. **Intrigue Factor**: Must create "I NEED to know what happened" feeling
+2. **Story Completeness**: Must fit in 60-90 seconds but feel complete
+3. **Shareability**: Must make people send to friends who love mysteries
+4. **Unanswered Question**: Must leave viewers wanting to discuss/theorize
+5. **Time Relevance**: Must fit {content_type} audience mood
+6. **Specific Mystery**: Prefer specific cases over vague mysteries
+7. **Binge Potential**: Must make them watch next video immediately
 
 GOOD EXAMPLES FOR {content_type}:
-{get_example_titles_for_content_type(content_type)}
+{get_example_mystery_titles_for_content_type(content_type)}
+
+AVOID:
+- Mysteries requiring too much context (can't explain in 60s)
+- Overly graphic true crime (focus on mystery not gore)
+- Unverified conspiracy theories
+- Active missing persons cases (ethical concern)
+- Mysteries already covered extensively (unless new angle)
 
 OUTPUT (JSON only):
 {{
   "selected_topics": [
     {{
-      "title": "Specific viral title optimized for {content_type}",
-      "reason": "Why this will go viral for {guidance['audience']}",
+      "title": "Specific viral mystery title optimized for {content_type}",
+      "reason": "Why this mystery will go viral for {guidance['audience']}",
       "viral_score": 95,
-      "hook_angle": "Specific emotional hook to use",
-      "target_pain": "Exact pain point this addresses",
-      "cta_idea": "What immediate action to command"
+      "hook_angle": "Specific impossible detail to hook viewers",
+      "mystery_type": "disappearance/crime/historical/conspiracy",
+      "key_contradiction": "The fact that doesn't make sense"
     }}
   ]
 }}
 
-Select 5 topics ranked by viral_score (highest first). Make them DIFFERENT from each other."""
+Select 5 mysteries ranked by viral_score (highest first). Make them DIFFERENT categories from each other."""
 
     max_retries = 3
     for attempt in range(max_retries):
@@ -623,15 +671,14 @@ Select 5 topics ranked by viral_score (highest first). Make them DIFFERENT from 
                 trending_ideas.append({
                     "topic_title": item.get('title', 'Unknown'),
                     "summary": item.get('reason', 'High viral potential'),
-                    "category": "Motivation",
+                    "category": item.get('mystery_type', 'mystery'),
                     "viral_score": item.get('viral_score', 90),
-                    "hook_angle": item.get('hook_angle', 'Brutal honest opening'),
-                    "target_pain": item.get('target_pain', 'Wasted potential'),
-                    "cta_idea": item.get('cta_idea', 'Take action now'),
+                    "hook_angle": item.get('hook_angle', 'Impossible event'),
+                    "key_contradiction": item.get('key_contradiction', 'Unexplained detail'),
                     "content_type": content_type
                 })
             
-            print(f"✅ Gemini ranked {len(trending_ideas)} viral topics")
+            print(f"✅ Gemini ranked {len(trending_ideas)} viral mysteries")
             for i, idea in enumerate(trending_ideas, 1):
                 print(f"   {i}. [{idea['viral_score']}] {idea['topic_title'][:60]}")
             
@@ -643,114 +690,95 @@ Select 5 topics ranked by viral_score (highest first). Make them DIFFERENT from 
                 time.sleep(2 ** attempt)
     
     print("⚠️ Gemini ranking failed, using fallback...")
-    return get_fallback_motivational_ideas(content_type)
+    return get_fallback_mystery_ideas(content_type)
 
 
-def get_example_titles_for_content_type(content_type: str) -> str:
+def get_example_mystery_titles_for_content_type(content_type: str) -> str:
     """Get example titles for each content type"""
     examples = {
-        'early_morning': """
-- "5 AM OR STAY BROKE: Your Choice (Morning Discipline)"
-- "What Successful People Do Before 6 AM (You're Sleeping)"
-- "Stop Hitting Snooze: The 5 Second Rule That Changes Everything"
+        'evening_prime': """
+- "Flight 19: Five Planes Vanished, Zero Evidence Ever Found"
+- "DB Cooper: The Only Unsolved Hijacking in US History"
+- "Malaysia MH370: The Disappearance That Defies All Logic"
+- "The Zodiac Killer: Why His Code Took 51 Years to Crack"
 """,
         'late_night': """
-- "Reading This at 2 AM? Here's Why You Can't Sleep (Truth)"
-- "You Wasted Today: Tomorrow Starts Right Now (Set Alarm)"
-- "The 2 AM Accountability: Your Future Self Is Watching"
+- "The Dyatlov Pass: 9 Hikers Found Dead in Impossible Circumstances"
+- "Elisa Lam: The Elevator Footage Nobody Can Explain"
+- "The Somerton Man: Dead Body, No Identity, Secret Code"
+- "The Boy in the Box: America's Unknown Child (Still Unsolved)"
 """,
-        'midday': """
-- "It's 2 PM: What Have You Actually Accomplished Today?"
-- "Stop Scrolling Start Doing: The Midday Reality Check"
-- "No Excuses: Get Back to Work Right Now (No Tomorrow)"
-""",
-        'evening': """
-- "End of Day: Did You Win or Just Survive? (Reflection)"
-- "Tomorrow Starts Tonight: Plan Your Morning Attack Now"
-- "What Did You Build Today? (Evening Accountability Check)"
+        'weekend_binge': """
+- "The Voynich Manuscript: A 600-Year-Old Book No One Can Read"
+- "Antikythera Mechanism: Ancient Computer That Shouldn't Exist"
+- "Göbekli Tepe: The Temple That Rewrites Human History"
+- "The Piri Reis Map: How Did They Map Antarctica Before the Ice?"
 """
     }
-    return examples.get(content_type, examples['midday'])
+    return examples.get(content_type, examples['evening_prime'])
 
 
-def get_fallback_motivational_ideas(content_type: str) -> List[Dict[str, Any]]:
-    """Fallback motivational ideas if all methods fail"""
+def get_fallback_mystery_ideas(content_type: str) -> List[Dict[str, Any]]:
+    """Fallback mystery ideas if all methods fail"""
     
     fallbacks = {
-        'early_morning': [
+        'evening_prime': [
             {
-                "topic_title": "YOU'RE NOT TIRED YOU'RE UNDISCIPLINED (5 AM Wake-Up)",
-                "summary": "Brutal truth about hitting snooze vs waking up at 5 AM like champions",
-                "category": "Morning Fire",
+                "topic_title": "Flight 19: The Bermuda Triangle Mystery That Defies Physics",
+                "summary": "Famous disappearance with zero evidence - perfect evening hook",
+                "category": "disappearance",
                 "viral_score": 95,
-                "hook_angle": "You slept 8 hours so what's the real problem",
-                "target_pain": "Lack of discipline disguised as tiredness",
-                "cta_idea": "Set alarm for 5 AM right now, no negotiation",
-                "content_type": "early_morning"
+                "hook_angle": "Five planes vanished, rescue plane also disappeared same night",
+                "key_contradiction": "No wreckage despite largest search in history",
+                "content_type": "evening_prime"
             },
             {
-                "topic_title": "THE FIRST HOUR OWNS THE DAY (Morning Routine Secrets)",
-                "summary": "Why your morning routine determines everything that follows",
-                "category": "Morning Fire",
-                "viral_score": 92,
-                "hook_angle": "Winners own their morning, losers let morning own them",
-                "target_pain": "Chaotic mornings leading to chaotic days",
-                "cta_idea": "Write down your morning routine tonight",
-                "content_type": "early_morning"
+                "topic_title": "DB Cooper: America's Only Unsolved Airplane Hijacking",
+                "summary": "Daring escape mystery that captivates audiences",
+                "category": "disappearance",
+                "viral_score": 93,
+                "hook_angle": "Jumped from plane with $200K and vanished forever",
+                "key_contradiction": "Survived impossible jump in business suit",
+                "content_type": "evening_prime"
             }
         ],
         'late_night': [
             {
-                "topic_title": "READING THIS AT 2 AM? Here's The Truth You Need",
-                "summary": "Why late night scrollers can't sleep (guilt about wasted day)",
-                "category": "Late Night Accountability",
+                "topic_title": "The Dyatlov Pass Incident: 9 Hikers Dead in Unexplained Circumstances",
+                "summary": "Disturbing unsolved mystery perfect for late night audience",
+                "category": "crime",
                 "viral_score": 96,
-                "hook_angle": "You can't sleep because you know you wasted today",
-                "target_pain": "Regret about procrastination and unfulfilled potential",
-                "cta_idea": "Set alarm for 5 AM tomorrow starts now",
+                "hook_angle": "Tent ripped from inside, bodies found in impossible conditions",
+                "key_contradiction": "Radiation on clothes, missing tongues, no attackers",
                 "content_type": "late_night"
             },
             {
-                "topic_title": "YOUR FUTURE SELF IS WATCHING (The 2 AM Decision)",
-                "summary": "Tomorrow is decided tonight - make the choice that changes everything",
-                "category": "Late Night Accountability",
+                "topic_title": "Elisa Lam: The Elevator Footage That Still Can't Be Explained",
+                "summary": "Eerie footage and impossible death location",
+                "category": "crime",
                 "viral_score": 94,
-                "hook_angle": "Every night you choose tomorrow's outcome",
-                "target_pain": "Repeated cycle of wasted days",
-                "cta_idea": "Close app and plan tomorrow right now",
+                "hook_angle": "Found in locked water tank on hotel roof",
+                "key_contradiction": "How did she get inside sealed tank from outside?",
                 "content_type": "late_night"
             }
         ],
-        'midday': [
+        'weekend_binge': [
             {
-                "topic_title": "NOBODY'S COMING TO SAVE YOU (Save Yourself)",
-                "summary": "Stop waiting for motivation, permission, or the perfect moment",
-                "category": "Discipline & Grind",
-                "viral_score": 93,
-                "hook_angle": "You're waiting for someone to rescue you but nobody's coming",
-                "target_pain": "Waiting for external validation to start",
-                "cta_idea": "Do one thing right now, anything, just move",
-                "content_type": "midday"
-            }
-        ],
-        'evening': [
-            {
-                "topic_title": "WHAT DID YOU BUILD TODAY? (Evening Reflection)",
-                "summary": "Honest accountability about how you spent your 24 hours",
-                "category": "Mindset Shift",
+                "topic_title": "The Voynich Manuscript: A Book No One Can Read for 600 Years",
+                "summary": "Complex historical mystery for weekend deep dive",
+                "category": "historical",
                 "viral_score": 91,
-                "hook_angle": "Today's almost over - did you win or make excuses",
-                "target_pain": "Busy but not productive, motion without progress",
-                "cta_idea": "Review today and plan tomorrow before sleep",
-                "content_type": "evening"
+                "hook_angle": "Unknown language, impossible plants, indecipherable",
+                "key_contradiction": "Too complex to be hoax, too strange to be real",
+                "content_type": "weekend_binge"
             }
         ]
     }
     
-    # Get content-type specific fallbacks, or use general
-    ideas = fallbacks.get(content_type, fallbacks['midday'])
+    # Get content-type specific fallbacks
+    ideas = fallbacks.get(content_type, fallbacks['evening_prime'])
     
-    print(f"📋 Using {len(ideas)} fallback ideas for {content_type}")
+    print(f"📋 Using {len(ideas)} fallback mystery ideas for {content_type}")
     return ideas
 
 
@@ -763,9 +791,9 @@ def save_trending_data(trending_ideas: List[Dict[str, Any]], content_type: str):
         "generated_at": datetime.now().isoformat(),
         "timestamp": time.time(),
         "content_type": content_type,
-        "niche": "motivation",
+        "niche": "mystery",  # Changed from "motivation"
         "source": "google_trends + reddit + youtube + evergreen + gemini_ranking",
-        "version": "2.0_robust"
+        "version": "2.0_mystery"  # Changed from "2.0_robust"
     }
     
     trending_file = os.path.join(TMP, "trending.json")
@@ -779,33 +807,33 @@ def save_trending_data(trending_ideas: List[Dict[str, Any]], content_type: str):
 if __name__ == "__main__":
     
     # Get content type from environment (set by workflow)
-    content_type = os.getenv('CONTENT_TYPE', 'general')
-    intensity = os.getenv('INTENSITY', 'balanced')
+    content_type = os.getenv('CONTENT_TYPE', 'evening_prime')  # Changed default
+    mystery_type = os.getenv('MYSTERY_TYPE', 'auto')  # Changed from intensity
     
-    print(f"\n🎯 TARGET: {content_type} content with {intensity} intensity")
+    print(f"\n🎯 TARGET: {content_type} content with {mystery_type} mystery type")
     
-    # Get real trending motivational topics
-    real_trends = get_real_motivational_trends()
+    # Get real trending mystery topics
+    real_trends = get_real_mystery_trends()
     
     if real_trends:
         # Use Gemini to filter and rank
-        trending_ideas = filter_and_rank_motivational_trends(real_trends, content_type)
+        trending_ideas = filter_and_rank_mystery_trends(real_trends, content_type)
     else:
         print("⚠️ Could not fetch real trends, using fallback...")
-        trending_ideas = get_fallback_motivational_ideas(content_type)
+        trending_ideas = get_fallback_mystery_ideas(content_type)
     
     if trending_ideas:
         print(f"\n" + "="*70)
-        print(f"🔥 TOP VIRAL MOTIVATIONAL IDEAS FOR {content_type.upper()}")
+        print(f"🔍 TOP VIRAL MYSTERY IDEAS FOR {content_type.upper()}")
         print("="*70)
         
         for i, idea in enumerate(trending_ideas, 1):
-            print(f"\n💎 IDEA {i}:")
+            print(f"\n💎 MYSTERY {i}:")
             print(f"   Title: {idea['topic_title']}")
+            print(f"   Type: {idea.get('category', 'mystery')}")
             print(f"   Viral Score: {idea.get('viral_score', 'N/A')}/100")
             print(f"   Hook: {idea.get('hook_angle', 'N/A')}")
-            print(f"   Pain Point: {idea.get('target_pain', 'N/A')}")
-            print(f"   CTA: {idea.get('cta_idea', 'N/A')}")
+            print(f"   Contradiction: {idea.get('key_contradiction', 'N/A')}")
             print(f"   Why: {idea['summary'][:100]}...")
         
         # Save to file

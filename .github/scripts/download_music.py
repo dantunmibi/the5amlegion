@@ -9,6 +9,7 @@ import json
 import requests
 from pathlib import Path
 import hashlib
+from datetime import datetime, timedelta
 
 TMP = os.getenv("GITHUB_WORKSPACE", ".") + "/tmp"
 MUSIC_DIR = os.path.join(TMP, "music")
@@ -18,13 +19,16 @@ os.makedirs(MUSIC_DIR, exist_ok=True)
 # Primary: Pixabay (CC0) | Backup: Incompetech (CC BY 4.0)
 # Each track has a backup URL for reliability
 
+# 🎵 COPYRIGHT-FREE MUSIC LIBRARY - INCOMPETECH FOCUSED
+# All tracks from Incompetech (Kevin MacLeod) - CC BY 4.0
+# These URLs are permanent and reliable
+
 MUSIC_LIBRARY = {
     # 🌑 DARK ATMOSPHERIC (Pain/Contemplation)
     'dark_atmospheric': {
-        'name': 'Dark Ambient Piano',
-        'url': 'https://cdn.pixabay.com/download/audio/2024/03/12/audio_1e5465fb8c.mp3?filename=haunting-piano-ambient-tension-full-272282.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Killers.mp3',
-        'duration': 135,
+        'name': 'Dark Ambient',
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Killers.mp3',
+        'duration': 213,
         'emotion': 'dark, contemplative, tension',
         'scenes': ['pain', 'late_night'],
         'volume_default': 0.15
@@ -32,9 +36,8 @@ MUSIC_LIBRARY = {
 
     'ambient_tension': {
         'name': 'Mysterious Dark',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_4ac3e30491.mp3?filename=mysterious-dark-122826.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cipher.mp3',
-        'duration': 120,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cipher.mp3',
+        'duration': 145,
         'emotion': 'mysterious, building tension',
         'scenes': ['pain'],
         'volume_default': 0.12
@@ -43,9 +46,8 @@ MUSIC_LIBRARY = {
     # 🔥 BUILDING DRUMS (Wake-up/Urgency)
     'epic_drums': {
         'name': 'Epic Drums Build',
-        'url': 'https://cdn.pixabay.com/download/audio/2024/03/18/audio_ca3c8d3ab3.mp3?filename=epic-drums-216819.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Drums%20of%20the%20Deep.mp3',
-        'duration': 99,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Drums%20of%20the%20Deep.mp3',
+        'duration': 249,
         'emotion': 'building, urgent, powerful',
         'scenes': ['wake_up', 'midday'],
         'volume_default': 0.25
@@ -53,9 +55,8 @@ MUSIC_LIBRARY = {
 
     'percussion_rise': {
         'name': 'Powerful Beat',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/03/23/audio_c8c3c1c3ed.mp3?filename=powerful-beat-121791.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Rocket.mp3',
-        'duration': 120,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Rocket.mp3',
+        'duration': 126,
         'emotion': 'intense, driving, momentum',
         'scenes': ['wake_up'],
         'volume_default': 0.25
@@ -64,9 +65,8 @@ MUSIC_LIBRARY = {
     # 🏔️ EPIC ORCHESTRAL (Transformation/Journey)
     'epic_orchestral': {
         'name': 'Epic Cinematic',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/09/06/audio_0625c1539c.mp3?filename=epic-cinematic-inspiration-141080.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3',
-        'duration': 140,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3',
+        'duration': 162,
         'emotion': 'epic, inspiring, victorious',
         'scenes': ['transformation', 'success'],
         'volume_default': 0.30
@@ -74,9 +74,8 @@ MUSIC_LIBRARY = {
 
     'cinematic_inspiration': {
         'name': 'Uplifting Orchestral',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/08/23/audio_2f4b0cfcd1.mp3?filename=cinematic-inspiration-149922.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Nowhere%20Land.mp3',
-        'duration': 95,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Nowhere%20Land.mp3',
+        'duration': 173,
         'emotion': 'uplifting, powerful, breakthrough',
         'scenes': ['transformation'],
         'volume_default': 0.28
@@ -85,9 +84,8 @@ MUSIC_LIBRARY = {
     # ⚔️ POWERFUL ACTION (Command/CTA)
     'powerful_action': {
         'name': 'Action Cinematic',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/11/28/audio_eaa2c13f5c.mp3?filename=action-cinematic-134127.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Complex.mp3',
-        'duration': 134,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Complex.mp3',
+        'duration': 283,
         'emotion': 'commanding, strong, decisive',
         'scenes': ['action', 'discipline'],
         'volume_default': 0.28
@@ -95,9 +93,8 @@ MUSIC_LIBRARY = {
 
     'heroic_resolve': {
         'name': 'Epic Heroic',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/10/07/audio_c7b5c2e3d8.mp3?filename=epic-orchestral-116227.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Prelude%20and%20Action.mp3',
-        'duration': 116,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Prelude%20and%20Action.mp3',
+        'duration': 104,
         'emotion': 'triumphant, resolving, victorious',
         'scenes': ['action'],
         'volume_default': 0.28
@@ -106,9 +103,8 @@ MUSIC_LIBRARY = {
     # 🎼 GENERAL EPIC (All-purpose)
     'epic_cinematic': {
         'name': 'Motivational Epic',
-        'url': 'https://cdn.pixabay.com/download/audio/2023/10/25/audio_8b0c7a1c6a.mp3?filename=inspirational-epic-orchestral-186819.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Matrix.mp3',
-        'duration': 88,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Stroll.mp3',
+        'duration': 203,
         'emotion': 'epic, motivational, building',
         'scenes': ['general', 'morning_fire'],
         'volume_default': 0.25
@@ -116,9 +112,8 @@ MUSIC_LIBRARY = {
 
     'inspiring_dramatic': {
         'name': 'Dramatic Inspiration',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=dramatic-inspirational-142005.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Achaidh%20Cheide.mp3',
-        'duration': 142,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Achaidh%20Cheide.mp3',
+        'duration': 137,
         'emotion': 'dramatic, inspiring, emotional',
         'scenes': ['general', 'evening'],
         'volume_default': 0.25
@@ -127,9 +122,8 @@ MUSIC_LIBRARY = {
     # 🔥 ADDITIONAL HIGH-ENERGY TRACKS
     'intense_motivation': {
         'name': 'Intense Motivation',
-        'url': 'https://cdn.pixabay.com/download/audio/2023/02/28/audio_69d61ea5e8.mp3?filename=intense-epic-cinematic-trailer-171048.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Oppressive%20Gloom.mp3',
-        'duration': 125,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Oppressive%20Gloom.mp3',
+        'duration': 210,
         'emotion': 'intense, energetic, powerful',
         'scenes': ['wake_up', 'midday'],
         'volume_default': 0.27
@@ -137,9 +131,8 @@ MUSIC_LIBRARY = {
     
     'epic_trailer': {
         'name': 'Epic Trailer',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_bbc8d4c9c7.mp3?filename=inspiring-cinematic-ambient-116199.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Darkest%20Child.mp3',
-        'duration': 158,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Darkest%20Child.mp3',
+        'duration': 251,
         'emotion': 'epic, cinematic, dramatic',
         'scenes': ['transformation', 'success'],
         'volume_default': 0.30
@@ -148,9 +141,8 @@ MUSIC_LIBRARY = {
     # 🌙 CALM BUT POWERFUL (Late night)
     'dark_reflection': {
         'name': 'Dark Reflection',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/11/22/audio_20cb6ce0c5.mp3?filename=dark-ambient-108851.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mining%20by%20Moonlight.mp3',
-        'duration': 108,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mining%20by%20Moonlight.mp3',
+        'duration': 214,
         'emotion': 'contemplative, deep, introspective',
         'scenes': ['late_night', 'evening'],
         'volume_default': 0.18
@@ -158,9 +150,8 @@ MUSIC_LIBRARY = {
     
     'midnight_drive': {
         'name': 'Midnight Drive',
-        'url': 'https://cdn.pixabay.com/download/audio/2023/06/14/audio_a3f9c0e20e.mp3?filename=night-detective-226857.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/In%20The%20Hall%20of%20the%20Mountain%20King.mp3',
-        'duration': 134,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2001.mp3',
+        'duration': 138,
         'emotion': 'moody, focused, determined',
         'scenes': ['late_night'],
         'volume_default': 0.20
@@ -169,12 +160,30 @@ MUSIC_LIBRARY = {
     # 💪 EXTRA DISCIPLINE TRACKS
     'warrior_mindset': {
         'name': 'Warrior Mindset',
-        'url': 'https://cdn.pixabay.com/download/audio/2022/05/13/audio_c6f5d1cd4c.mp3?filename=cinematic-time-lapse-115672.mp3',
-        'backup_url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fearless%20First.mp3',
-        'duration': 131,
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fearless%20First.mp3',
+        'duration': 234,
         'emotion': 'determined, focused, unstoppable',
         'scenes': ['discipline', 'action'],
         'volume_default': 0.26
+    },
+    
+    # 🎯 BONUS TRACKS
+    'morning_power': {
+        'name': 'Morning Power',
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Volatile%20Reaction.mp3',
+        'duration': 189,
+        'emotion': 'energetic, wake-up, powerful',
+        'scenes': ['early_morning', 'wake_up'],
+        'volume_default': 0.28
+    },
+    
+    'battle_ready': {
+        'name': 'Battle Ready',
+        'url': 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heart%20of%20the%20Beast.mp3',
+        'duration': 93,
+        'emotion': 'aggressive, ready, intense',
+        'scenes': ['action', 'discipline'],
+        'volume_default': 0.30
     }
 }
 
@@ -210,7 +219,7 @@ def get_track_hash(track_key):
 
 def download_track(track_key, track_info, force=False):
     """
-    Download a music track with automatic backup URL fallback
+    Download a music track if not already cached
     Returns: local file path or None
     """
     
@@ -228,95 +237,67 @@ def download_track(track_key, track_info, force=False):
             print(f"✅ Using cached: {track_info['name']}")
             return cached_path
     
-    # Prepare URLs to try (primary + backup)
-    urls_to_try = [
-        ('Primary (Pixabay)', track_info['url']),
-    ]
-    
-    if 'backup_url' in track_info:
-        urls_to_try.append(('Backup (Incompetech)', track_info['backup_url']))
-    
+    # Download
     print(f"📥 Downloading: {track_info['name']}...")
     
-    for source_name, url in urls_to_try:
-        try:
-            print(f"   🔄 Trying {source_name}...")
+    try:
+        url = track_info['url']
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'audio/mpeg,audio/*;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://incompetech.com/',
+            'Connection': 'keep-alive'
+        }
+        
+        response = requests.get(
+            url, 
+            timeout=120, 
+            stream=True,
+            headers=headers,
+            allow_redirects=True
+        )
+        
+        if response.status_code == 200:
+            # Download with progress
+            with open(filepath, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
             
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'audio/mpeg,audio/*;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Referer': 'https://pixabay.com/' if 'pixabay' in url else 'https://incompetech.com/'
-            }
-            
-            response = requests.get(
-                url,
-                timeout=120,
-                stream=True,
-                headers=headers,
-                allow_redirects=True
-            )
-            
-            if response.status_code == 200:
-                # Verify content type
-                content_type = response.headers.get('Content-Type', '').lower()
+            # Verify file
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:
+                file_size_kb = os.path.getsize(filepath) / 1024
+                print(f"   ✅ Downloaded {file_size_kb:.1f} KB")
                 
-                # Accept audio types or octet-stream (generic binary)
-                if not ('audio' in content_type or 'octet-stream' in content_type or 'mpeg' in content_type):
-                    print(f"      ⚠️ Unexpected content type: {content_type}")
-                    continue
+                # Update cache
+                cache[track_key] = {
+                    'name': track_info['name'],
+                    'local_path': filepath,
+                    'url': track_info['url'],
+                    'duration': track_info['duration'],
+                    'emotion': track_info['emotion'],
+                    'scenes': track_info['scenes'],
+                    'volume_default': track_info['volume_default'],
+                    'downloaded_at': datetime.now().isoformat(),  # ← Now datetime is imported
+                    'file_size_kb': round(file_size_kb, 2)
+                }
+                save_music_cache(cache)
                 
-                # Download with progress
-                total_size = int(response.headers.get('content-length', 0))
-                downloaded = 0
-                
-                with open(filepath, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                
-                # Verify file size (at least 50KB for valid audio)
-                file_size = os.path.getsize(filepath)
-                
-                if file_size > 50000:  # 50KB minimum
-                    print(f"      ✅ Downloaded {file_size / 1024:.1f} KB from {source_name}")
-                    
-                    # Update cache with successful source
-                    cache[track_key] = {
-                        'name': track_info['name'],
-                        'local_path': filepath,
-                        'url': url,
-                        'source': source_name,
-                        'duration': track_info['duration'],
-                        'emotion': track_info['emotion'],
-                        'scenes': track_info['scenes'],
-                        'volume_default': track_info['volume_default'],
-                        'downloaded_at': datetime.now().isoformat(),
-                        'file_size_kb': round(file_size / 1024, 2)
-                    }
-                    save_music_cache(cache)
-                    
-                    return filepath
-                else:
-                    print(f"      ⚠️ File too small ({file_size} bytes), trying next source...")
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
-                        
+                return filepath
             else:
-                print(f"      ⚠️ HTTP {response.status_code}")
-                
-        except requests.exceptions.Timeout:
-            print(f"      ⚠️ Download timeout (>120s)")
-        except requests.exceptions.RequestException as e:
-            print(f"      ⚠️ Network error: {str(e)[:50]}")
-        except Exception as e:
-            print(f"      ⚠️ Error: {str(e)[:50]}")
-    
-    print(f"   ❌ All sources failed for {track_key}")
-    return None
+                print(f"   ⚠️ Downloaded file invalid")
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                return None
+        else:
+            print(f"   ⚠️ Download failed: HTTP {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"   ⚠️ Download error: {e}")
+        return None
 
 
 def get_music_for_scene(scene_type, content_type='general'):
@@ -368,18 +349,18 @@ def get_music_for_scene(scene_type, content_type='general'):
 
 
 def download_all_music():
-    """Download all music tracks with source tracking"""
+    """Download all music tracks for offline use"""
     
     print("\n" + "="*70)
-    print("🎵 DOWNLOADING HYBRID MUSIC LIBRARY")
+    print("🎵 DOWNLOADING MUSIC LIBRARY")
     print("="*70)
-    print("Primary: Pixabay (CC0) | Backup: Incompetech (CC BY 4.0)")
+    print("Source: Incompetech (Kevin MacLeod) - CC BY 4.0")
+    print("License: Free to use with attribution")
     print()
     
     total = len(MUSIC_LIBRARY)
     successful = 0
     failed = []
-    source_stats = {'Primary (Pixabay)': 0, 'Backup (Incompetech)': 0}
     
     for track_key, track_info in MUSIC_LIBRARY.items():
         print(f"\n📀 [{successful + len(failed) + 1}/{total}] {track_info['name']}")
@@ -389,15 +370,12 @@ def download_all_music():
         if local_path:
             successful += 1
             print(f"   ✅ Ready: {local_path}")
-            
-            # Track which source was used
-            cache = load_music_cache()
-            if track_key in cache:
-                source = cache[track_key].get('source', 'Unknown')
-                source_stats[source] = source_stats.get(source, 0) + 1
         else:
             failed.append(track_key)
             print(f"   ❌ Failed")
+        
+        # Small delay to be respectful to server
+        time.sleep(0.5)
     
     print("\n" + "="*70)
     print("📊 DOWNLOAD SUMMARY")
@@ -405,17 +383,13 @@ def download_all_music():
     print(f"✅ Successful: {successful}/{total}")
     print(f"❌ Failed: {len(failed)}/{total}")
     
-    if source_stats:
-        print(f"\n📍 Sources Used:")
-        for source, count in source_stats.items():
-            percentage = (count / successful * 100) if successful > 0 else 0
-            print(f"   {source}: {count} tracks ({percentage:.1f}%)")
-    
     if failed:
-        print(f"\n❌ Failed tracks: {', '.join(failed)}")
+        print(f"\nFailed tracks: {', '.join(failed)}")
     
     print(f"\n💾 Music library location: {MUSIC_DIR}")
-    print(f"🎵 Reliability: Both Pixabay and Incompetech sources available")
+    print(f"📄 Attribution: Music by Kevin MacLeod (incompetech.com)")
+    print(f"📜 Licensed under Creative Commons: By Attribution 4.0")
+    print(f"🔗 https://creativecommons.org/licenses/by/4.0/")
     
     return successful, failed
 
