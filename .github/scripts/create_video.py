@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-🔥 Create Motivational Video - PRODUCTION VERSION WITH OPTIMIZED SYNC
+🔥 Create Motivational Video - PRODUCTION VERSION WITH MUSIC
 Features:
 - Near-perfect audio-video synchronization (<50ms drift)
+- Epic background music with dynamic volume control
 - Cinematic teal & orange color grading
 - High contrast dramatic lighting
 - Warrior/training imagery optimization
@@ -23,6 +24,7 @@ import time
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageFilter
 import random
 import subprocess
+import sys
 
 TMP = os.getenv("GITHUB_WORKSPACE", ".") + "/tmp"
 OUT = os.path.join(TMP, "short.mp4")
@@ -43,6 +45,17 @@ MOTIVATION_COLORS = {
     'fire_red': (200, 50, 30),
     'steel_gray': (60, 65, 70),
 }
+
+# 🎵 Import music system
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+
+try:
+    from download_music import get_music_for_scene, MUSIC_DIR
+    MUSIC_AVAILABLE = True
+    print("✅ Music system available")
+except ImportError:
+    MUSIC_AVAILABLE = False
+    print("⚠️ Music system not available (will skip background music)")
 
 
 def get_font_path():
@@ -126,9 +139,7 @@ def load_audio_metadata():
 
 
 def get_section_duration_from_timing(section_name, timing_data):
-    """
-    Get duration for a specific section from timing metadata
-    """
+    """Get duration for a specific section from timing metadata"""
     if not timing_data or 'sections' not in timing_data:
         return None
     
@@ -140,10 +151,7 @@ def get_section_duration_from_timing(section_name, timing_data):
 
 
 def estimate_duration_fallback(text, audio_duration, all_text_parts):
-    """
-    Fallback duration estimation if timing metadata not available
-    Uses proportional word count
-    """
+    """Fallback duration estimation if timing metadata not available"""
     if not text or not all_text_parts:
         return 3.0
     
@@ -153,23 +161,16 @@ def estimate_duration_fallback(text, audio_duration, all_text_parts):
     if total_words == 0:
         return audio_duration / max(1, len(all_text_parts))
     
-    # Proportional duration based on word count
     duration = (words_this_section / total_words) * audio_duration
-    
-    # Minimum duration for readability
     return max(2.0, duration)
 
 
 def enhance_visual_prompt_for_motivation(prompt, scene_type, intensity):
     """Enhance prompts specifically for motivational cinematic content"""
     
-    # Base cinematic elements
     cinematic_base = "cinematic 4K, dramatic lighting, high contrast, professional photography, ultra detailed"
-    
-    # Teal & orange color grading keywords
     color_grading = "teal and orange color grade, split toning, moody atmospheric, film grain"
     
-    # Scene-specific enhancements
     scene_enhancements = {
         'pain': "dark moody atmosphere, contemplative, alone with thoughts, blue tones, deep shadows, emotional depth, introspective, solitude",
         'wake_up': "intense athletic training, determination, sweat and effort, pushing limits, slow motion action, explosive power, grit",
@@ -177,7 +178,6 @@ def enhance_visual_prompt_for_motivation(prompt, scene_type, intensity):
         'action': "commanding warrior presence, direct eye contact, fierce determination, ready for battle, champion mindset, unstoppable"
     }
     
-    # Intensity-specific keywords
     intensity_keywords = {
         'aggressive': "raw intense powerful fierce hardcore unrelenting brutal honest",
         'balanced': "strong determined focused disciplined composed commanding",
@@ -186,17 +186,10 @@ def enhance_visual_prompt_for_motivation(prompt, scene_type, intensity):
     
     enhancement = scene_enhancements.get(scene_type, "powerful and inspiring")
     intensity_words = intensity_keywords.get(intensity, intensity_keywords['balanced'])
-    
-    # Motivational visual keywords
     motivational_keywords = "heroic stance, determined expression, muscular athletic, disciplined warrior, mental toughness"
     
-    # Remove any soft/weak language
     prompt = prompt.replace('happy', 'determined').replace('smiling', 'focused').replace('casual', 'intense')
-    
-    # Build enhanced prompt
     enhanced = f"{prompt}, {enhancement}, {intensity_words}, {motivational_keywords}, {color_grading}, {cinematic_base}"
-    
-    # Clean up
     enhanced = enhanced.replace('  ', ' ').strip()
     
     return enhanced
@@ -331,7 +324,6 @@ def generate_motivation_fallback(bg_path, scene_type, width=1080, height=1920):
     
     print(f"🔎 Searching motivation image for '{scene_type}' (keyword: '{keyword}')...")
 
-    # Try Unsplash
     try:
         seed = random.randint(1, 9999)
         url = f"https://source.unsplash.com/{width}x{height}/?{requests.utils.quote(keyword)}&sig={seed}"
@@ -348,7 +340,6 @@ def generate_motivation_fallback(bg_path, scene_type, width=1080, height=1920):
     except Exception as e:
         print(f"    ⚠️ Unsplash error: {e}")
 
-    # Try Pexels
     try:
         print("    🔄 Trying Pexels curated motivation photos...")
         
@@ -388,7 +379,6 @@ def generate_motivation_fallback(bg_path, scene_type, width=1080, height=1920):
     except Exception as e:
         print(f"    ⚠️ Pexels fallback failed: {e}")
 
-    # Picsum
     try:
         seed = random.randint(1, 1000)
         url = f"https://picsum.photos/{width}/{height}?random={seed}&grayscale"
@@ -429,7 +419,6 @@ def create_cinematic_gradient(filepath, scene_type, width=1080, height=1920):
         b = int(colors[0][2] * (1 - ratio) + colors[1][2] * ratio)
         draw.line([(0, y), (width, y)], fill=(r, g, b))
     
-    # Add vignette
     img = apply_vignette_simple(img, strength=0.5)
     
     img.save(filepath, quality=95)
@@ -456,7 +445,6 @@ def generate_image_reliable(prompt, filename, scene_type, width=1080, height=192
     """Try multiple providers with motivation-specific fallbacks"""
     filepath = os.path.join(TMP, filename)
     
-    # AI Providers
     providers = [
         ("Pollinations", generate_image_pollinations),
         ("HuggingFace", generate_image_huggingface)
@@ -472,14 +460,12 @@ def generate_image_reliable(prompt, filename, scene_type, width=1080, height=192
             print(f"    ⚠️ {provider_name} failed: {e}")
             continue
 
-    # Motivation-specific photo fallbacks
     print("🖼️ AI failed, trying curated motivation photos...")
     result = generate_motivation_fallback(filepath, scene_type=scene_type, width=width, height=height)
 
     if result and os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
         return result
     
-    # Cinematic gradient fallback
     print("⚠️ All providers failed, creating cinematic gradient...")
     return create_cinematic_gradient(filepath, scene_type, width, height)
 
@@ -510,7 +496,7 @@ def apply_cinematic_color_grading(image_path, scene_type):
             brightness = 1.15
             saturation = 1.3
             
-        else:  # action
+        else:
             img = tint_golden(img)
             contrast = 1.9
             brightness = 1.2
@@ -614,6 +600,121 @@ def add_film_grain(img, intensity=0.1):
         return img
 
 
+# 🎵 MUSIC INTEGRATION FUNCTIONS
+
+def create_dynamic_music_layer(audio_duration, script_data):
+    """
+    Create music layer with dynamic volume based on emotional arc
+    Volume changes per section for maximum emotional impact
+    """
+    
+    if not MUSIC_AVAILABLE:
+        print("⚠️ Music system unavailable, skipping background music")
+        return None
+    
+    print("\n🎵 Creating DYNAMIC music layer (emotional arc)...")
+    
+    content_type = script_data.get('content_type', 'general')
+    
+    # Load timing metadata if available
+    timing_path = os.path.join(TMP, "audio_timing.json")
+    sections = []
+    
+    if os.path.exists(timing_path):
+        try:
+            with open(timing_path, 'r') as f:
+                timing_data = json.load(f)
+                sections = timing_data.get('sections', [])
+            print(f"   ✅ Using {len(sections)} timed sections for volume control")
+        except:
+            print("   ⚠️ Could not load timing data, using single track")
+    
+    # Get primary music track
+    scene_map = {
+        'early_morning': 'wake_up',
+        'late_night': 'pain',
+        'midday': 'wake_up',
+        'evening': 'transformation',
+        'general': 'transformation'
+    }
+    
+    primary_scene = scene_map.get(content_type, 'transformation')
+    track_key, music_path, _ = get_music_for_scene(primary_scene, content_type)
+    
+    if not music_path or not os.path.exists(music_path):
+        print("⚠️ No music track available, skipping")
+        return None
+    
+    print(f"   🎵 Track: {track_key}")
+    print(f"   📁 Path: {music_path}")
+    
+    try:
+        # Load base music
+        music = AudioFileClip(music_path)
+        
+        # Trim/loop to duration
+        if music.duration < audio_duration:
+            loops = int(audio_duration / music.duration) + 1
+            music = music.loop(n=loops)
+            print(f"   🔁 Looped music {loops}x to match duration")
+        
+        music = music.subclipped(0, audio_duration)
+        
+        # If we have section timing, create dynamic volume
+        if sections and len(sections) > 0:
+            # Volume levels by section type (emotional arc)
+            volume_map = {
+                'hook': 0.12,       # Low (let voice dominate, build tension)
+                'bullet_0': 0.22,   # Building (urgency rising)
+                'bullet_1': 0.28,   # Peak emotion (transformation moment)
+                'bullet_2': 0.26,   # Sustain power
+                'cta': 0.20         # Resolve (clear command)
+            }
+            
+            # Create volume envelope
+            music_clips = []
+            
+            for section in sections:
+                section_name = section['name']
+                start = section['start']
+                duration = section['duration']
+                
+                # Get volume for this section
+                volume = volume_map.get(section_name, 0.20)
+                
+                # Extract and volume-adjust this section
+                if start + duration <= music.duration:
+                    section_music = music.subclipped(start, start + duration)
+                    section_music = section_music.with_volume_scaled(volume)
+                    section_music = section_music.with_start(start)
+                    
+                    music_clips.append(section_music)
+                    
+                    print(f"   📊 {section_name}: {duration:.1f}s @ {volume*100:.0f}% volume")
+            
+            if music_clips:
+                # Composite all sections
+                final_music = CompositeAudioClip(music_clips)
+                print(f"   ✅ Dynamic music layer created with {len(music_clips)} volume changes")
+                
+                return final_music
+            else:
+                # Fallback to simple
+                music = music.with_volume_scaled(0.22)
+                print(f"   ⚠️ Fallback: Simple music layer at 22% volume")
+                return music
+        
+        else:
+            # Simple version: single volume (22% default)
+            music = music.with_volume_scaled(0.22)
+            print(f"   ✅ Simple music layer at 22% volume")
+            return music
+            
+    except Exception as e:
+        print(f"⚠️ Dynamic music creation failed: {e}")
+        return None
+
+
 # --- Main Scene Generation ---
 
 print("🔥 Generating motivational scenes...")
@@ -690,24 +791,20 @@ if timing_data and timing_data.get('optimized'):
     
     sections = timing_data['sections']
     
-    # Extract durations from timing metadata
     hook_dur = 0.0
     bullet_durs = []
     cta_dur = 0.0
     
-    # Hook
     if hook:
         hook_section = next((s for s in sections if s['name'] == 'hook'), None)
         if hook_section:
             hook_dur = hook_section['duration']
             print(f"   Hook: {hook_dur:.2f}s (from metadata)")
         else:
-            # Fallback if not in metadata
             all_text = [hook] + bullets + [cta]
             hook_dur = estimate_duration_fallback(hook, duration, all_text)
             print(f"   Hook: {hook_dur:.2f}s (estimated)")
     
-    # Bullets
     for i, bullet in enumerate(bullets):
         bullet_section = next((s for s in sections if s['name'] == f'bullet_{i}'), None)
         if bullet_section:
@@ -715,25 +812,21 @@ if timing_data and timing_data.get('optimized'):
             bullet_durs.append(dur)
             print(f"   Bullet {i+1}: {dur:.2f}s (from metadata)")
         else:
-            # Fallback
             all_text = [hook] + bullets + [cta]
             dur = estimate_duration_fallback(bullet, duration, all_text)
             bullet_durs.append(dur)
             print(f"   Bullet {i+1}: {dur:.2f}s (estimated)")
     
-    # CTA
     if cta:
         cta_section = next((s for s in sections if s['name'] == 'cta'), None)
         if cta_section:
             cta_dur = cta_section['duration']
             print(f"   CTA: {cta_dur:.2f}s (from metadata)")
         else:
-            # Fallback
             all_text = [hook] + bullets + [cta]
             cta_dur = estimate_duration_fallback(cta, duration, all_text)
             print(f"   CTA: {cta_dur:.2f}s (estimated)")
     
-    # Verify total matches audio duration
     total_calculated = hook_dur + sum(bullet_durs) + cta_dur
     
     if abs(total_calculated - duration) > 0.5:
@@ -742,7 +835,6 @@ if timing_data and timing_data.get('optimized'):
         print(f"   Audio: {duration:.2f}s")
         print(f"   Adjusting proportionally...")
         
-        # Adjust all durations proportionally
         adjustment_factor = duration / total_calculated
         
         hook_dur *= adjustment_factor
@@ -752,12 +844,11 @@ if timing_data and timing_data.get('optimized'):
         print(f"   ✅ Adjusted by factor {adjustment_factor:.4f}")
 
 else:
-    # ⚠️ FALLBACK: No timing metadata available
     print("\n⚠️ No timing metadata available, using estimation")
     
     def estimate_duration(text):
         words = len(text.split())
-        return (words / 110) * 60.0  # 110 WPM
+        return (words / 110) * 60.0
     
     hook_est = estimate_duration(hook) if hook else 0
     bullets_est = [estimate_duration(b) for b in bullets]
@@ -776,7 +867,6 @@ else:
         bullet_durs = [equal] * len(bullets)
         cta_dur = equal
 
-# Print final timings
 print(f"\n⏱️ Final Scene Timings:")
 if hook:
     print(f"   Hook: {hook_dur:.2f}s")
@@ -897,7 +987,6 @@ def create_scene(image_path, text, duration, start_time, position_y='center', co
     if color_fallback is None:
         color_fallback = MOTIVATION_COLORS['deep_black']
     
-    # Background
     if image_path and os.path.exists(image_path):
         bg = (ImageClip(image_path)
               .resized(height=h)
@@ -910,7 +999,6 @@ def create_scene(image_path, text, duration, start_time, position_y='center', co
     
     scene_clips.append(bg)
     
-    # Text overlay
     if text:
         wrapped, font_size = create_text_with_effects(text)
         
@@ -942,7 +1030,6 @@ def create_scene(image_path, text, duration, start_time, position_y='center', co
         else:
             pos_y = position_y
         
-        # Clamp to safe zones
         pos_y = max(SAFE_ZONE_MARGIN + 100, min(pos_y, h - text_h - bottom_safe - descender))
         
         text_clip = (text_clip
@@ -1014,13 +1101,30 @@ else:
 print(f"\n🎬 Composing video ({len(clips)} clips)...")
 video = CompositeVideoClip(clips, size=(w, h))
 
-print(f"🔊 Adding audio...")
-video = video.with_audio(audio)
+# 🎵 ADD BACKGROUND MUSIC + TTS VOICEOVER
+print(f"\n🔊 Adding audio with background music...")
+
+background_music = create_dynamic_music_layer(duration, data)
+
+if background_music:
+    try:
+        # Composite: TTS voiceover + background music
+        final_audio = CompositeAudioClip([audio, background_music])
+        video = video.with_audio(final_audio)
+        print(f"   ✅ Audio: TTS + Epic background music (dynamic volume)")
+    except Exception as e:
+        print(f"   ⚠️ Music compositing failed: {e}")
+        print(f"   Fallback: TTS only")
+        video = video.with_audio(audio)
+else:
+    # Fallback: just TTS
+    video = video.with_audio(audio)
+    print(f"   ⚠️ Audio: TTS only (music unavailable)")
 
 if video.audio is None:
     raise Exception("Audio attachment failed!")
 
-print(f"📹 Writing video...")
+print(f"\n📹 Writing video...")
 try:
     video.write_videofile(
         OUT,
@@ -1043,9 +1147,10 @@ try:
     print(f"   Sync Status: {sync_status} ({abs(current_time - duration)*1000:.0f}ms drift)")
     print(f"   Features:")
     print(f"      ✓ Optimized audio timing metadata")
+    print(f"      ✓ Epic background music with dynamic volume")
     print(f"      ✓ Cinematic teal & orange color grading")
     print(f"      ✓ Motivation-specific image generation")
-    print(f"      ✓ Curated fitness/warrior photos (Pexels)")
+    print(f"      ✓ Curated fitness/warrior photos")
     print(f"      ✓ High contrast dramatic lighting")
     print(f"      ✓ Film grain for cinematic feel")
     print(f"      ✓ Vignette effects")
@@ -1054,6 +1159,8 @@ try:
     print(f"      ✓ Safe zone text positioning")
     print(f"      ✓ Adaptive font sizing")
     print(f"      ✓ Cross-fade transitions")
+    if background_music:
+        print(f"      ✓ Professional audio mix (TTS + Music)")
     print(f"   🔥 Motivational empire ready!")
     
 except Exception as e:

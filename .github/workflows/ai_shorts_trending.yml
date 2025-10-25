@@ -98,6 +98,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytz
 
+      - name: 🎵 Download background music library
+        if: steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          echo "🎵 Downloading copyright-free epic music..."
+          python .github/scripts/download_music.py --download-all
+        continue-on-error: true
+
       - name: 🔥 Check optimal motivation posting time
         id: schedule_check
         run: |
