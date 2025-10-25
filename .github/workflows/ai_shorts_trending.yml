@@ -1,0 +1,551 @@
+name: 🔥 5AM Legion - Automated Motivational Shorts Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Platforms to upload to (comma-separated: youtube,tiktok,instagram,facebook,makecom)'
+        required: false
+        default: 'youtube,tiktok,instagram,facebook'
+      force_all:
+        description: 'Force upload to all enabled platforms'
+        required: false
+        type: boolean
+        default: false
+      ignore_schedule:
+        description: 'Ignore optimal timing and post immediately'
+        required: false
+        type: boolean
+        default: false
+      intensity:
+        description: 'Content intensity (aggressive, balanced, inspirational)'
+        required: false
+        default: 'balanced'
+  schedule:
+  # 🔥 MOTIVATION-OPTIMAL POSTING SCHEDULE (WAT - West Africa Time)
+  # Based on 2AM scrollers, 5AM warriors, and evening reflectors
+  
+  # Monday: 5 AM (week starter), 12 PM (midday boost), 11 PM (late night)
+  - cron: '0 4 * * 1'    # 5 AM WAT - Morning fire
+  - cron: '0 11 * * 1'   # 12 PM WAT - Midday boost
+  - cron: '0 22 * * 1'   # 11 PM WAT - Late night accountability
+  
+  # Tuesday: 6 AM (discipline), 2 PM (afternoon push), 10 PM (night truth)
+  - cron: '0 5 * * 2'    # 6 AM WAT - Discipline message
+  - cron: '0 13 * * 2'   # 2 PM WAT - Afternoon motivation
+  - cron: '0 21 * * 2'   # 10 PM WAT - Evening reflection
+  
+  # Wednesday: 5 AM (mid-week warrior), 6 PM (evening fire), 11:30 PM (2AM content)
+  - cron: '0 4 * * 3'    # 5 AM WAT - Mid-week push
+  - cron: '0 17 * * 3'   # 6 PM WAT - Evening inspiration
+  - cron: '0 22 * * 3'   # 11:30 PM WAT - Late scrollers
+  
+  # Thursday: 5:30 AM (grind), 1 PM (lunch inspiration), 10:30 PM (night warriors)
+  - cron: '0 4 * * 4'    # 5:30 AM WAT - Morning grind
+  - cron: '0 12 * * 4'   # 1 PM WAT - Midday fire
+  - cron: '0 21 * * 4'   # 10:30 PM WAT - Late night
+  
+  # Friday: 5 AM (finish strong), 7 PM (weekend prep), 11 PM (friday night)
+  - cron: '0 4 * * 5'    # 5 AM WAT - Week closer
+  - cron: '0 18 * * 5'   # 7 PM WAT - Weekend mindset
+  - cron: '0 22 * * 5'   # 11 PM WAT - Friday reflection
+  
+  # Saturday: 6 AM (weekend warriors), 10 AM (morning inspiration), 8 PM (evening motivation)
+  - cron: '0 5 * * 6'    # 6 AM WAT - Weekend grind
+  - cron: '0 9 * * 6'    # 10 AM WAT - Morning power
+  - cron: '0 19 * * 6'   # 8 PM WAT - Evening fire
+  
+  # Sunday: 7 AM (sunday rise), 3 PM (weekly reflection), 9 PM (week prep)
+  - cron: '0 6 * * 0'    # 7 AM WAT - Sunday warrior
+  - cron: '0 14 * * 0'   # 3 PM WAT - Weekly review
+  - cron: '0 20 * * 0'   # 9 PM WAT - Week ahead prep
+
+jobs:
+  build_and_upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: 🔥 Checkout 5AM Legion
+        uses: actions/checkout@v4
+
+      - name: 🔐 Validate secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          MAKECOM_WEBHOOK_URL: ${{ secrets.MAKECOM_WEBHOOK_URL }}
+        run: python .github/scripts/validate_secrets.py
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 💾 Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-motivation-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-motivation-
+            ${{ runner.os }}-pip-
+
+      - name: 📦 Install Python packages (for scheduler check)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytz
+
+      - name: 🔥 Check optimal motivation posting time
+        id: schedule_check
+        run: |
+          python -c "
+          import os
+          from datetime import datetime
+          import pytz
+          
+          # West Africa Time
+          tz = pytz.timezone('Africa/Lagos')
+          current = datetime.now(tz)
+          hour = current.hour
+          weekday = current.weekday()
+
+          # MOTIVATION-OPTIMIZED SCHEDULE
+          # Key times: 5-6 AM (morning warriors), 11 PM-2 AM (late night scrollers)
+          OPTIMAL_SCHEDULE = {
+              0: [5, 12, 23],      # Monday: Morning fire, midday, late night
+              1: [6, 14, 22],      # Tuesday: Discipline, afternoon, evening
+              2: [5, 18, 23],      # Wednesday: Morning, evening fire, late
+              3: [5, 13, 22],      # Thursday: Grind, midday, night
+              4: [5, 19, 23],      # Friday: Strong finish, weekend prep, reflection
+              5: [6, 10, 20],      # Saturday: Weekend warriors, morning, evening
+              6: [7, 15, 21]       # Sunday: Rise, reflection, week prep
+          }
+
+          # CONTENT TYPES BY TIME
+          CONTENT_TYPES = {
+              'early_morning': 'Morning Fire (5-7 AM)',      # 4-6 hour
+              'midday': 'Midday Boost (11 AM-3 PM)',         # 11-15 hour
+              'evening': 'Evening Reflection (6-9 PM)',      # 18-21 hour
+              'late_night': 'Late Night Accountability (10 PM-2 AM)'  # 22-2 hour
+          }
+
+          def get_content_type(hour):
+              if 4 <= hour <= 6:
+                  return 'early_morning'
+              elif 11 <= hour <= 15:
+                  return 'midday'
+              elif 18 <= hour <= 21:
+                  return 'evening'
+              elif hour >= 22 or hour <= 2:
+                  return 'late_night'
+              return 'general'
+
+          should_post = False
+          priority = 'medium'
+          content_type = get_content_type(hour)
+          
+          ignore_schedule = '${{ github.event.inputs.ignore_schedule }}' == 'true'
+          
+          if ignore_schedule:
+              print('⚠️ Schedule check BYPASSED by user input')
+              should_post = True
+              priority = 'manual'
+          elif weekday in OPTIMAL_SCHEDULE:
+              optimal_hours = OPTIMAL_SCHEDULE[weekday]
+              # Allow posting within 1 hour window of optimal time
+              if any(abs(hour - opt_hour) <= 1 for opt_hour in optimal_hours):
+                  should_post = True
+                  # Highest priority for 5 AM and late night (2 AM) content
+                  if content_type in ['early_morning', 'late_night']:
+                      priority = 'highest'
+                  elif content_type == 'evening':
+                      priority = 'high'
+                  else:
+                      priority = 'medium'
+                  print(f'✅ Within optimal window: {current.strftime(\"%A %I:%M %p WAT\")} - {CONTENT_TYPES[content_type]}')
+              else:
+                  print(f'⏳ Not optimal time. Current: {current.strftime(\"%A %I:%M %p WAT\")}')
+                  print(f'   Next optimal: {min(optimal_hours, key=lambda x: abs(x-hour))}:00')
+          
+          # Write to GITHUB_OUTPUT
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'should_post={str(should_post).lower()}\n')
+              f.write(f'priority={priority}\n')
+              f.write(f'content_type={content_type}\n')
+              f.write(f'current_time={current.strftime(\"%Y-%m-%d %H:%M WAT\")}\n')
+          "
+
+      - name: 📅 Display motivation scheduling decision
+        run: |
+          echo "⏰ Current Time: ${{ steps.schedule_check.outputs.current_time }}"
+          echo "🎯 Should Post: ${{ steps.schedule_check.outputs.should_post }}"
+          echo "⭐ Priority: ${{ steps.schedule_check.outputs.priority }}"
+          echo "🔥 Content Type: ${{ steps.schedule_check.outputs.content_type }}"
+          echo ""
+          echo "💡 Optimal Motivation Times:"
+          echo "   • 5-6 AM: Morning Warriors (HIGHEST engagement)"
+          echo "   • 11 PM-2 AM: Late Night Scrollers (HIGHEST virality)"
+          echo "   • 12-2 PM: Midday Boost (Good engagement)"
+          echo "   • 6-9 PM: Evening Reflection (Medium engagement)"
+
+      - name: ⏸️ Skip if not optimal motivation time
+        if: steps.schedule_check.outputs.should_post != 'true'
+        run: |
+          echo "⏸️ Skipping run - not within optimal motivation posting window"
+          echo "💡 Best times to catch the audience:"
+          echo "   🔥 5 AM: Morning warriors starting their day"
+          echo "   🔥 2 AM: Late night scrollers in existential crisis"
+          echo "   💪 12 PM: Midday motivation seekers"
+          echo "   🌙 10 PM: Evening reflection time"
+          exit 0
+
+      - name: 📦 Cache apt packages
+        if: steps.schedule_check.outputs.should_post == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
+          key: ${{ runner.os }}-apt-motivation-${{ hashFiles('.github/workflows/motivation_shorts.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-motivation-
+            ${{ runner.os }}-apt-
+
+      - name: 🔧 Install system deps
+        if: steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ffmpeg \
+            libsm6 \
+            libxext6 \
+            imagemagick \
+            fonts-dejavu-core \
+            fonts-liberation \
+            fonts-freefont-ttf \
+            fonts-roboto-unhinted \
+            espeak-ng
+          echo "📝 Available fonts for IMPACT text:"
+          fc-list | grep -i dejavu | head -3
+          fc-list | grep -i liberation | head -3
+          fc-list | grep -i roboto | head -3
+          echo "🔥 System ready for motivational content generation"
+
+      - name: 🎙️ Cache Coqui models
+        if: steps.schedule_check.outputs.should_post == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/tts
+          key: coqui-models-motivation-${{ runner.os }}
+
+      - name: 📁 Create tmp folder
+        if: steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          mkdir -p tmp
+          chmod -R 777 tmp
+          echo "🔥 Workspace ready for motivational empire"
+
+      - name: 📋 Restore platform config
+        if: steps.schedule_check.outputs.should_post == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: tmp/platform_config.json
+          key: platform-config-motivation-${{ github.run_number }}
+          restore-keys: |
+            platform-config-motivation-
+            platform-config-
+
+      - name: 📚 Restore playlist config
+        if: steps.schedule_check.outputs.should_post == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: tmp/playlist_config.json
+          key: playlist-config-motivation-${{ github.run_number }}
+          restore-keys: |
+            playlist-config-motivation-
+            playlist-config-
+
+      - name: 📖 Restore content history
+        if: steps.schedule_check.outputs.should_post == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: tmp/content_history.json
+          key: content-history-motivation-${{ github.run_number }}
+          restore-keys: |
+            content-history-motivation-
+            content-history-
+
+      - name: 📦 Install Python packages
+        if: steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "🔥 Python dependencies installed for motivation engine"
+
+      - name: 🔍 Fetch trending motivational topics
+        if: steps.schedule_check.outputs.should_post == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+          INTENSITY: ${{ github.event.inputs.intensity }}
+        run: |
+          echo "🔥 Fetching trending motivation topics..."
+          echo "📍 Content Type: $CONTENT_TYPE"
+          echo "⚡ Intensity: ${INTENSITY:-balanced}"
+          python .github/scripts/fetch_trending.py
+
+      - name: ✍️ Generate motivational script
+        if: steps.schedule_check.outputs.should_post == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+          PRIORITY: ${{ steps.schedule_check.outputs.priority }}
+          INTENSITY: ${{ github.event.inputs.intensity }}
+        run: |
+          echo "🔥 Generating POWERFUL motivational script..."
+          echo "📍 Type: $CONTENT_TYPE"
+          echo "⭐ Priority: $PRIORITY"
+          echo "⚡ Intensity: ${INTENSITY:-balanced}"
+          python .github/scripts/generate_trending_and_script.py
+
+      - name: 🎙️ Generate commanding voiceover (Deep & Powerful)
+        if: steps.schedule_check.outputs.should_post == 'true'
+        env:
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+        run: |
+          echo "🎙️ Generating DEEP, COMMANDING voiceover..."
+          echo "🔥 Style: Motivational speaker (David Goggins/Jocko energy)"
+          python .github/scripts/generate_tts.py
+
+      - name: 🎬 Create cinematic motivational video
+        if: steps.schedule_check.outputs.should_post == 'true'
+        env:
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+        run: |
+          echo "🎬 Creating CINEMATIC motivational video..."
+          echo "🎨 Style: Teal & Orange, high contrast, warrior imagery"
+          python .github/scripts/create_video.py
+
+      - name: 🖼️ Generate powerful thumbnail
+        if: steps.schedule_check.outputs.should_post == 'true'
+        env:
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+        run: |
+          echo "🖼️ Creating POWERFUL thumbnail..."
+          echo "💥 Style: Dark + Power words + Warrior energy"
+          python .github/scripts/generate_thumbnail.py
+
+      - name: 🧹 Clean up temporary files
+        if: steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          find tmp -name "scene_*.jpg" -type f -delete || true
+          rm -f tmp/short_ready.mp4 || true
+          echo "🧹 Cleaned up temporary files"
+
+      # ===== MULTI-PLATFORM MOTIVATION UPLOAD =====
+      - name: 📤 Upload to multiple platforms
+        if: steps.schedule_check.outputs.should_post == 'true'
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          MAKECOM_WEBHOOK_URL: ${{ secrets.MAKECOM_WEBHOOK_URL }}
+          PLATFORMS: ${{ github.event.inputs.platforms }}
+          FORCE_ALL: ${{ github.event.inputs.force_all }}
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+        run: |
+          echo "🔥 Uploading motivational fire to all platforms..."
+          python .github/scripts/upload_multiplatform.py
+
+      - name: 🔍 Find actual video file
+        if: success() && steps.schedule_check.outputs.should_post == 'true'
+        id: find_video
+        run: |
+          if [ -f tmp/short.mp4 ]; then
+            VIDEO_PATH="tmp/short.mp4"
+          else
+            VIDEO_PATH=$(find tmp -name "*.mp4" -type f | head -n 1)
+          fi
+          
+          VIDEO_PATH=$(realpath "$VIDEO_PATH")
+          echo "video_path=$VIDEO_PATH" >> $GITHUB_OUTPUT
+          echo "video_name=$(basename $VIDEO_PATH)" >> $GITHUB_OUTPUT
+          
+          VIDEO_SIZE=$(stat -c%s "$VIDEO_PATH" 2>/dev/null || stat -f%z "$VIDEO_PATH")
+          echo "✅ Video validated: $VIDEO_PATH ($VIDEO_SIZE bytes)"
+
+      - name: 📋 Prepare Make.com payload
+        if: success() && steps.schedule_check.outputs.should_post == 'true'
+        id: makecom_prep
+        run: |
+          TITLE=$(jq -r '.title' tmp/script.json)
+          DESCRIPTION=$(jq -r '.description' tmp/script.json)
+          HASHTAGS=$(jq -r '.hashtags | join(" ")' tmp/script.json)
+          KEY_PHRASE=$(jq -r '.key_phrase' tmp/script.json)
+          
+          VIDEO_PATH="${{ steps.find_video.outputs.video_path }}"
+          VIDEO_SIZE=$(stat -c%s "$VIDEO_PATH" 2>/dev/null || stat -f%z "$VIDEO_PATH")
+          
+          YOUTUBE_URL=""
+          TIKTOK_URL=""
+          INSTAGRAM_URL=""
+          FACEBOOK_URL=""
+          
+          if [ -f tmp/multiplatform_log.json ]; then
+            YOUTUBE_URL=$(jq -r '.[-1].results[] | select(.platform=="youtube") | .url // ""' tmp/multiplatform_log.json)
+            TIKTOK_URL=$(jq -r '.[-1].results[] | select(.platform=="tiktok") | .url // ""' tmp/multiplatform_log.json)
+            INSTAGRAM_URL=$(jq -r '.[-1].results[] | select(.platform=="instagram") | .url // ""' tmp/multiplatform_log.json)
+            FACEBOOK_URL=$(jq -r '.[-1].results[] | select(.platform=="facebook") | .url // ""' tmp/multiplatform_log.json)
+          fi
+          
+          cat > tmp/makecom_payload.json <<EOF
+          {
+            "title": "$TITLE",
+            "description": "$DESCRIPTION",
+            "hashtags": "$HASHTAGS",
+            "key_phrase": "$KEY_PHRASE",
+            "video_name": "$(basename $VIDEO_PATH)",
+            "video_size_mb": $(echo "scale=2; $VIDEO_SIZE/1024/1024" | bc),
+            "workflow_run": "${{ github.run_number }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "niche": "motivation",
+            "content_type": "${{ steps.schedule_check.outputs.content_type }}",
+            "priority": "${{ steps.schedule_check.outputs.priority }}",
+            "intensity": "${{ github.event.inputs.intensity }}",
+            "platform_urls": {
+              "youtube": "$YOUTUBE_URL",
+              "tiktok": "$TIKTOK_URL",
+              "instagram": "$INSTAGRAM_URL",
+              "facebook": "$FACEBOOK_URL"
+            }
+          }
+          EOF
+          
+          echo "✅ Make.com payload prepared"
+          cat tmp/makecom_payload.json
+
+      - name: ☁️ Upload video to Cloudinary
+        if: success() && steps.schedule_check.outputs.should_post == 'true'
+        id: upload_temp
+        run: |
+          echo "📤 Uploading to Cloudinary..."
+          export VIDEO_TO_UPLOAD="${{ steps.find_video.outputs.video_path }}"
+          python .github/scripts/upload_to_cloudinary.py
+          VIDEO_URL=$(cat tmp/video_url.txt)
+          echo "video_url=$VIDEO_URL" >> $GITHUB_OUTPUT
+          echo "✅ Video URL: $VIDEO_URL"
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+
+      - name: 🔗 Send to Make.com webhook
+        if: success() && steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          PAYLOAD=$(cat tmp/makecom_payload.json)
+          VIDEO_URL="${{ steps.upload_temp.outputs.video_url }}"
+          
+          curl -X POST "${{ secrets.MAKECOM_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"video_url\": \"$VIDEO_URL\",
+              \"niche\": \"motivation\",
+              \"content_type\": \"${{ steps.schedule_check.outputs.content_type }}\",
+              \"metadata\": $PAYLOAD,
+              \"github\": {
+                \"run_id\": \"${{ github.run_id }}\",
+                \"run_number\": \"${{ github.run_number }}\",
+                \"repository\": \"${{ github.repository }}\"
+              }
+            }"
+          
+          echo "✅ Webhook sent to Make.com"
+
+      - name: 📚 Organize into motivational playlists
+        if: success() && steps.schedule_check.outputs.should_post == 'true'
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
+        run: |
+          echo "📚 Organizing into motivational playlists..."
+          python .github/scripts/manage_playlists.py
+
+      - name: 💾 Save platform config
+        uses: actions/cache/save@v4
+        if: always() && steps.schedule_check.outputs.should_post == 'true'
+        with:
+          path: tmp/platform_config.json
+          key: platform-config-motivation-${{ github.run_number }}
+
+      - name: 💾 Save playlist config
+        uses: actions/cache/save@v4
+        if: always() && steps.schedule_check.outputs.should_post == 'true'
+        with:
+          path: tmp/playlist_config.json
+          key: playlist-config-motivation-${{ github.run_number }}
+
+      - name: 💾 Save content history
+        uses: actions/cache/save@v4
+        if: always() && steps.schedule_check.outputs.should_post == 'true'
+        with:
+          path: tmp/content_history.json
+          key: content-history-motivation-${{ github.run_number }}
+
+      - name: 📦 Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always() && steps.schedule_check.outputs.should_post == 'true'
+        with:
+          name: motivational-short-${{ github.run_number }}
+          path: |
+            tmp/*.mp4
+            tmp/thumbnail.png
+            tmp/script.json
+            tmp/content_history.json
+            tmp/multiplatform_log.json
+            tmp/voice.mp3
+          retention-days: 30
+
+      - name: 📋 Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-motivation-${{ github.run_number }}
+          path: tmp/*.log
+          retention-days: 7
+
+      - name: 🔥 Workflow Summary
+        if: always()
+        run: |
+          echo "## 🔥 5AM Legion - Motivational Empire" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** ${{ steps.schedule_check.outputs.current_time }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Posted:** ${{ steps.schedule_check.outputs.should_post }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Priority:** ${{ steps.schedule_check.outputs.priority }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Content Type:** ${{ steps.schedule_check.outputs.content_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Intensity:** ${{ github.event.inputs.intensity }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔥 Optimal Posting Times" >> $GITHUB_STEP_SUMMARY
+          echo "- **5-6 AM:** Morning Warriors (HIGHEST)" >> $GITHUB_STEP_SUMMARY
+          echo "- **11 PM-2 AM:** Late Night Scrollers (HIGHEST)" >> $GITHUB_STEP_SUMMARY
+          echo "- **12-2 PM:** Midday Boost" >> $GITHUB_STEP_SUMMARY
+          echo "- **6-9 PM:** Evening Reflection" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 💪 Content Pillars" >> $GITHUB_STEP_SUMMARY
+          echo "- Morning Fire (30%)" >> $GITHUB_STEP_SUMMARY
+          echo "- Discipline & Grind (25%)" >> $GITHUB_STEP_SUMMARY
+          echo "- Mindset Shifts (20%)" >> $GITHUB_STEP_SUMMARY
+          echo "- Late Night Accountability (15%)" >> $GITHUB_STEP_SUMMARY
+          echo "- Success Stories (10%)" >> $GITHUB_STEP_SUMMARY

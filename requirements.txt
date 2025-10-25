@@ -1,0 +1,27 @@
+# 🌱 Garden Glow Up - Automated Gardening Shorts Pipeline
+# Python Dependencies
+# System utilities
+setuptools>=68.0.0
+wheel>=0.41.0
+
+google-generativeai
+requests
+beautifulsoup4
+moviepy
+google-api-python-client
+google-auth
+Pillow
+python-dotenv
+tenacity
+pytrends
+gtts
+TTS
+pydub
+mutagen
+
+facebook-sdk
+cloudinary
+requests-toolbelt
+
+pytz
+urllib3>=1.26.18
