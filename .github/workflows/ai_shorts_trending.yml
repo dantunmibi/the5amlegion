@@ -93,20 +93,18 @@ jobs:
             ${{ runner.os }}-pip-motivation-
             ${{ runner.os }}-pip-
 
-      - name: 📦 Install Python packages
-        if: steps.schedule_check.outputs.should_post == 'true'
+      - name: 📦 Install Python packages (for scheduler check)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          echo "🔥 Python dependencies installed for motivation engine"
+          pip install pytz
 
-      - name: 🎵 Download background music library (essential tracks)
+      - name: 🎵 Download background music library
         if: steps.schedule_check.outputs.should_post == 'true'
         run: |
-          echo "🎵 Downloading essential copyright-free epic music..."
-          python .github/scripts/download_music.py
+          echo "🎵 Downloading copyright-free epic music..."
+          python .github/scripts/download_music.py --download-all
         continue-on-error: true
-        
+
       - name: 🔥 Check optimal motivation posting time
         id: schedule_check
         run: |
