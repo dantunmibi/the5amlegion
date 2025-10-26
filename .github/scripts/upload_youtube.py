@@ -1,3 +1,4 @@
+# .github/scripts/upload_youtube.py
 import os
 import json
 from datetime import datetime
@@ -15,9 +16,9 @@ THUMB = os.path.join(TMP, "thumbnail.png")
 READY_VIDEO = os.path.join(TMP, "short_ready.mp4")
 UPLOAD_LOG = os.path.join(TMP, "upload_history.json")
 
-# 💪 THE 5AM LEGION CHANNEL CONFIG
-CHANNEL_NAME = "The 5am Legion"
-CHANNEL_TAGLINE = "Rise. Grind. Conquer. 💪"
+# 🌱 GARDENING CHANNEL CONFIG
+CHANNEL_NAME = "Sprout Snap"
+CHANNEL_TAGLINE = "Rapid gardening wins under 60 seconds 🌱"
 
 # ---- Load Global Metadata ONCE ----
 try:
@@ -27,17 +28,17 @@ except FileNotFoundError:
     print("❌ Error: script.json not found.")
     raise
 
-title = data.get("title", "Motivational Message")
+title = data.get("title", "Garden Tip")
 description = data.get("description", f"{title}")
-hashtags = data.get("hashtags", ["#motivation", "#5am", "#shorts"])
-topic = data.get("topic", "motivation")
+hashtags = data.get("hashtags", ["#gardening", "#planttok", "#shorts"])
+topic = data.get("topic", "gardening")
 
 # ---- Step 1: Validate video ----
 if not os.path.exists(VIDEO):
     raise FileNotFoundError(f"Video file not found: {VIDEO}")
 
 video_size_mb = os.path.getsize(VIDEO) / (1024 * 1024)
-print(f"📹 Motivational video file found: {VIDEO} ({video_size_mb:.2f} MB)")
+print(f"📹 Gardening video file found: {VIDEO} ({video_size_mb:.2f} MB)")
 if video_size_mb < 0.1:
     raise ValueError("Video file is too small, likely corrupted")
 
@@ -50,7 +51,7 @@ if VIDEO != video_output_path:
         try:
             os.rename(VIDEO, video_output_path)
             VIDEO = video_output_path
-            print(f"🎬 Final motivational video renamed to: {video_output_path}")
+            print(f"🎬 Final gardening video renamed to: {video_output_path}")
         except Exception as e:
             print(f"⚠️ Renaming failed: {e}. Using original path.")
     else:
@@ -74,49 +75,49 @@ except Exception as e:
     print(f"❌ Authentication failed: {e}")
     raise
 
-# ---- Step 4: 💪 Prepare MOTIVATION-OPTIMIZED metadata ----
-# Enhanced description with motivation-specific CTAs and keywords
+# ---- Step 4: 🌱 Prepare GARDENING-OPTIMIZED metadata ----
+# Enhanced description with gardening-specific CTAs and keywords
 enhanced_description = f"""{description}
 
 {' '.join(hashtags)}
 
-💪 {CHANNEL_TAGLINE}
+🌱 {CHANNEL_TAGLINE}
 
 ---
-⏰ Join The 5am Legion - Where Champions Are Built
-🔥 Daily motivation to transform your mindset and life
-💯 Rise before the world wakes up and dominate your day
-🎯 Master your morning, master your life
+📅 New gardening tips daily!
+🌿 Grow smarter, greener, and faster with daily plant hacks.
+💚 Follow {CHANNEL_NAME} for more plant care hacks
+🌱 Topics: Plant Care • Propagation • Urban Gardening • Garden Hacks
 
-Follow The 5am Legion:
-YouTube   : @The5amLegion
-Instagram : @The5amLegion
-TikTok    : @The5amLegion
-Facebook  : The 5am Legion
+Follow Sprout Snap:
+YouTube   : @SproutSnap
+Instagram : @SproutSnap
+TikTok    : @SproutSnap
+Facebook  : Sprout Snap
 
 Created: {datetime.now().strftime('%Y-%m-%d')}
-Category: People & Blogs
+Category: Gardening & Home
 """
 
-# 💪 MOTIVATION-SPECIFIC TAGS (optimized for discovery)
-motivation_base_tags = [
-    "motivation",
-    "motivational video",
-    "5am club",
-    "morning routine",
-    "mindset",
-    "self improvement",
-    "personal development",
-    "discipline",
-    "success mindset",
-    "inspirational",
-    "gym motivation",
-    "wake up early",
-    "productivity"
+# 🌱 GARDENING-SPECIFIC TAGS (optimized for discovery)
+gardening_base_tags = [
+    "gardening",
+    "gardening tips",
+    "plant care",
+    "garden hacks",
+    "urban gardening",
+    "container gardening",
+    "houseplants",
+    "propagation",
+    "grow your own food",
+    "organic gardening",
+    "garden shorts",
+    "planttok",
+    "plant parent"
 ]
 
 # Combine with script hashtags
-tags = motivation_base_tags.copy()
+tags = gardening_base_tags.copy()
 if hashtags:
     tags.extend([tag.replace('#', '').lower() for tag in hashtags[:10]])
 tags.append("shorts")
@@ -125,7 +126,7 @@ tags.append("viral")
 # Remove duplicates and limit to 15 tags (YouTube limit is 500 chars, ~15 tags is safe)
 tags = list(dict.fromkeys(tags))[:15]
 
-print(f"📝 Motivational metadata ready:")
+print(f"📝 Gardening metadata ready:")
 print(f"   Title: {title}")
 print(f"   Channel: {CHANNEL_NAME}")
 print(f"   Tags: {', '.join(tags[:10])}...")
@@ -135,7 +136,7 @@ snippet = {
     "title": title[:100],  # YouTube limit
     "description": enhanced_description[:5000],  # YouTube limit
     "tags": tags,
-    "categoryId": "22"  # 💪 Category 22 = "People & Blogs" (best for motivational content)
+    "categoryId": "26"  # 🌱 Category 26 = "Howto & Style" (better for gardening than 28-Science)
 }
 
 body = {
@@ -147,13 +148,13 @@ body = {
     }
 }
 
-print(f"📤 Uploading motivational video to YouTube...")
+print(f"📤 Uploading gardening video to YouTube...")
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=4, max=60))
 def upload_video(youtube_client, video_path, metadata):
     media = MediaFileUpload(
         video_path,
-        chunksize=10*1024*1024,
+        chunksize=1024*1024,
         resumable=True,
         mimetype="video/mp4"
     )
@@ -177,13 +178,13 @@ def upload_video(youtube_client, video_path, metadata):
     return response
 
 try:
-    print("🚀 Starting motivational video upload...")
+    print("🚀 Starting gardening video upload...")
     result = upload_video(youtube, VIDEO, body)
     video_id = result["id"]
     video_url = f"https://www.youtube.com/watch?v={video_id}"
     shorts_url = f"https://www.youtube.com/shorts/{video_id}"
     
-    print(f"✅ Motivational video uploaded successfully!")
+    print(f"✅ Gardening video uploaded successfully!")
     print(f"   Video ID: {video_id}")
     print(f"   Watch URL: {video_url}")
     print(f"   Shorts URL: {shorts_url}")
@@ -200,25 +201,25 @@ except Exception as e:
 # ---- Step 6: Set thumbnail (desktop view) ----
 if os.path.exists(THUMB):
     try:
-        print("🖼️ Setting motivational thumbnail for desktop views...")
+        print("🖼️ Setting gardening thumbnail for desktop views...")
         thumb_size_mb = os.path.getsize(THUMB) / (1024*1024)
         if thumb_size_mb > 2:
             print(f"⚠️ Compressing thumbnail ({thumb_size_mb:.2f}MB)...")
             img = Image.open(THUMB)
-            # 💪 Optimize thumbnail with high quality for impact
+            # 🌱 Optimize thumbnail with good quality for garden imagery
             img.save(THUMB, quality=90, optimize=True)
         
         youtube.thumbnails().set(
             videoId=video_id, 
             media_body=MediaFileUpload(THUMB)
         ).execute()
-        print("✅ Motivational thumbnail set successfully (desktop view).")
+        print("✅ Gardening thumbnail set successfully (desktop view).")
     except Exception as e:
         print(f"⚠️ Thumbnail upload failed: {e}")
 else:
     print("⚠️ No thumbnail file found, skipping thumbnail set.")
 
-# ---- Step 7: 💪 Save upload history with motivational analytics ----
+# ---- Step 7: 🌱 Save upload history with gardening analytics ----
 upload_metadata = {
     "video_id": video_id,
     "title": title,
@@ -230,8 +231,8 @@ upload_metadata = {
     "hashtags": hashtags,
     "file_size_mb": round(video_size_mb, 2),
     "tags": tags,
-    "category": "People & Blogs",
-    "content_type": "motivational_short"
+    "category": "Gardening & Home",
+    "content_type": "gardening_short"
 }
 
 history = []
@@ -248,14 +249,14 @@ history = history[-100:]  # Keep last 100 uploads
 with open(UPLOAD_LOG, 'w') as f:
     json.dump(history, f, indent=2)
 
-# 💪 Analytics summary
+# 🌱 Analytics summary
 total_uploads = len(history)
-print(f"\n📊 Channel Stats: {total_uploads} motivational videos uploaded total")
+print(f"\n📊 Channel Stats: {total_uploads} gardening videos uploaded total")
 
 print("\n" + "="*70)
-print("🎉 MOTIVATIONAL VIDEO UPLOAD COMPLETE!")
+print("🎉 GARDENING VIDEO UPLOAD COMPLETE!")
 print("="*70)
-print(f"💪 Channel: {CHANNEL_NAME}")
+print(f"🌱 Channel: {CHANNEL_NAME}")
 print(f"📹 Title: {title}")
 print(f"🏷️  Topic: {topic}")
 print(f"🆔 Video ID: {video_id}")
@@ -263,10 +264,10 @@ print(f"🔗 Shorts URL: {shorts_url}")
 print(f"#️⃣  Hashtags: {' '.join(hashtags[:5])}")
 print(f"🏷️  Tags: {', '.join(tags[:8])}...")
 print("="*70)
-print("\n💡 The 5am Legion Channel Tips:")
-print("   • Best posting time: 4-6 AM (when your legion is waking up)")
-print("   • Peak engagement: Monday mornings & Sunday evenings")
-print("   • Reply to comments within 1 hour for maximum engagement")
-print("   • Cross-post to Instagram Reels & TikTok simultaneously")
-print("   • Use powerful thumbnails with bold text and intense energy")
+print("\n💡 Gardening Channel Tips:")
+print("   • Best posting time: 6-8 AM (morning gardeners) or 6-8 PM (evening)")
+print("   • Peak season: March-May (spring planting)")
+print("   • Engage with comments within 2 hours for algorithm boost")
+print("   • Cross-post to TikTok 2 hours after YouTube")
 print(f"\n🔗 Share this URL: {shorts_url}")
+print("🌱 Keep growing! 🌿")
