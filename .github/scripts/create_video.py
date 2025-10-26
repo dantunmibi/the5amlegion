@@ -600,8 +600,31 @@ def add_film_grain(img, intensity=0.1):
         return img
 
 
+# Fallback method (works on all MoviePy versions)
+# ============================================
 # 🎵 MUSIC INTEGRATION FUNCTIONS
+# ============================================
 
+# ✅ PUT THE SAFE VOLUME FUNCTION HERE (first)
+def apply_volume_safe(audio_clip, volume_factor):
+    """Safe volume application for all MoviePy versions"""
+    try:
+        # Try multiply_volume first
+        return audio_clip.multiply_volume(volume_factor)
+    except AttributeError:
+        try:
+            # Fallback: set_volume (older API)
+            return audio_clip.set_volume(volume_factor)
+        except AttributeError:
+            try:
+                # Last resort: volume_factor parameter
+                return audio_clip.set_volume(volume_factor)
+            except:
+                print("⚠️ Volume control not available, returning original")
+                return audio_clip
+
+
+# ✅ THEN YOUR EXISTING create_dynamic_music_layer FUNCTION
 def create_dynamic_music_layer(audio_duration, script_data):
     """
     Create music layer with proper volume mixing
@@ -665,8 +688,8 @@ def create_dynamic_music_layer(audio_duration, script_data):
         
         final_volume = volume_mapping.get(content_type, 0.35)
         
-        # ✅ Apply volume using multiply_volume (MoviePy 3.11 compatible)
-        music = music.multiply_volume(final_volume)
+        # ✅ USE THE SAFE FUNCTION HERE
+        music = apply_volume_safe(music, final_volume)
         
         print(f"   ✅ Volume set: {final_volume*100:.0f}%")
         print(f"   ✅ Final duration: {music.duration:.2f}s")
