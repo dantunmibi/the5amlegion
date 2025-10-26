@@ -210,7 +210,7 @@ if os.path.exists(THUMB):
             print(f"⚠️ Compressing thumbnail ({thumb_size_mb:.2f}MB)...")
             img = Image.open(THUMB)
             # 💪 Optimize thumbnail with high quality for impact
-            img.save(THUMB, quality=92, optimize=True)
+            img.save(THUMB, quality=90, optimize=True)
         
         youtube.thumbnails().set(
             videoId=video_id, 
