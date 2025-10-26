@@ -679,11 +679,11 @@ def create_dynamic_music_layer(audio_duration, script_data):
         
         # Volume mapping by content type
         volume_mapping = {
-            'early_morning': 0.40,
-            'late_night': 0.25,
-            'midday': 0.45,
-            'evening': 0.32,
-            'general': 0.35
+            'early_morning': 0.30,
+            'late_night': 0.15,
+            'midday': 0.35,
+            'evening': 0.22,
+            'general': 0.25
         }
         
         final_volume = volume_mapping.get(content_type, 0.35)
