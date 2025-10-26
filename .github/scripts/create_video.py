@@ -1095,16 +1095,11 @@ background_music = create_dynamic_music_layer(duration, data)
 
 if background_music:
     try:
-        # Apply slight compression to voice for clarity
-        from moviepy.audio.fx.audio_normalize import audio_normalize
-        
-        # Normalize voice to ensure it's loud enough
-        voice_normalized = audio.fx(audio_normalize)
-        
         # Composite: TTS voiceover + background music
-        final_audio = CompositeAudioClip([voice_normalized, background_music])
+        # TTS is already at proper volume from generate_tts.py
+        final_audio = CompositeAudioClip([audio, background_music])
         video = video.with_audio(final_audio)
-        print(f"   ✅ Audio: TTS + Epic background music (optimized mix)")
+        print(f"   ✅ Audio: TTS + Epic background music (professional mix)")
     except Exception as e:
         print(f"   ⚠️ Music compositing failed: {e}")
         print(f"   Fallback: TTS only")
