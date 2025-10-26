@@ -94,8 +94,6 @@ Instagram : @The5amLegion
 TikTok    : @The5amLegion
 Facebook  : The 5am Legion
 
-✊ Join the movement. Wake up. Show up. Level up.
-
 Created: {datetime.now().strftime('%Y-%m-%d')}
 Category: People & Blogs
 """
@@ -114,9 +112,7 @@ motivation_base_tags = [
     "inspirational",
     "gym motivation",
     "wake up early",
-    "productivity",
-    "hustle",
-    "grind"
+    "productivity"
 ]
 
 # Combine with script hashtags
@@ -274,4 +270,3 @@ print("   • Reply to comments within 1 hour for maximum engagement")
 print("   • Cross-post to Instagram Reels & TikTok simultaneously")
 print("   • Use powerful thumbnails with bold text and intense energy")
 print(f"\n🔗 Share this URL: {shorts_url}")
-print("💪 Let's dominate! The 5am Legion never stops! 🔥")
