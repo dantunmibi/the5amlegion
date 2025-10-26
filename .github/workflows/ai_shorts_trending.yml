@@ -41,9 +41,10 @@ on:
   - cron: '0 22 * * 3'   # 11:30 PM WAT - Late scrollers
   
   # Thursday: 5:30 AM (grind), 1 PM (lunch inspiration), 10:30 PM (night warriors)
-  - cron: '0 4 * * 4'    # 5:30 AM WAT - Morning grind
-  - cron: '0 12 * * 4'   # 1 PM WAT - Midday fire
-  - cron: '0 21 * * 4'   # 10:30 PM WAT - Late night
+  - cron: '0 1 * * 4'    # 5:30 AM WAT - Morning grind
+  - cron: '0 5 * * 4'   # 1 PM WAT - Midday fire
+  - cron: '0 12 * * 4'   # 10:30 PM WAT - Late night
+  - cron: '0 21 * * 4'   # 10:30 PM WAT - Night warriors
   
   # Friday: 5 AM (finish strong), 7 PM (weekend prep), 11 PM (friday night)
   - cron: '0 4 * * 5'    # 5 AM WAT - Week closer
@@ -52,12 +53,13 @@ on:
   
   # Saturday: 6 AM (weekend warriors), 10 AM (morning inspiration), 8 PM (evening motivation)
   - cron: '0 5 * * 6'    # 6 AM WAT - Weekend grind
-  - cron: '0 9 * * 6'    # 10 AM WAT - Morning power
-  - cron: '0 19 * * 6'   # 8 PM WAT - Evening fire
+  - cron: '0 13 * * 6'    # 10 AM WAT - Morning power
+  - cron: '0 21 * * 6'   # 8 PM WAT - Evening fire
   
   # Sunday: 7 AM (sunday rise), 3 PM (weekly reflection), 9 PM (week prep)
-  - cron: '0 6 * * 0'    # 7 AM WAT - Sunday warrior
-  - cron: '0 14 * * 0'   # 3 PM WAT - Weekly review
+  - cron: '0 5 * * 0'    # 6 AM WAT - Sunday warrior
+  - cron: '0 7 * * 0'    # 8 AM WAT - Sunday rise
+  - cron: '0 0 * * 0'   # 1 AM WAT - Weekly review
   - cron: '0 20 * * 0'   # 9 PM WAT - Week ahead prep
 
 jobs:
