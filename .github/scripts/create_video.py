@@ -605,7 +605,7 @@ def add_film_grain(img, intensity=0.1):
 def create_dynamic_music_layer(audio_duration, script_data):
     """
     Create music layer with proper volume mixing
-    FIXED: Use audio_volumex() for compatibility and better volume control
+    PRODUCTION-READY VERSION
     """
     
     if not MUSIC_AVAILABLE:
@@ -616,7 +616,7 @@ def create_dynamic_music_layer(audio_duration, script_data):
     
     content_type = script_data.get('content_type', 'general')
     
-    # Get primary music track
+    # Scene to music type mapping
     scene_map = {
         'early_morning': 'wake_up',
         'late_night': 'pain',
@@ -626,23 +626,26 @@ def create_dynamic_music_layer(audio_duration, script_data):
     }
     
     primary_scene = scene_map.get(content_type, 'transformation')
-    track_key, music_path, _ = get_music_for_scene(primary_scene, content_type)
-    
-    if not music_path or not os.path.exists(music_path):
-        print("⚠️ No music track available, skipping")
-        return None
-    
-    print(f"   🎵 Track: {track_key}")
-    print(f"   📁 Path: {music_path}")
     
     try:
-        # Load base music
-        music = AudioFileClip(music_path)
+        track_key, music_path, default_volume = get_music_for_scene(primary_scene, content_type)
         
-        # Loop music if needed
+        if not music_path or not os.path.exists(music_path):
+            print("⚠️ No music track available")
+            return None
+        
+        print(f"   🎵 Track: {track_key}")
+        print(f"   📁 Path: {music_path}")
+        
+        # Load music
+        music = AudioFileClip(music_path)
+        original_duration = music.duration
+        print(f"   ⏱️ Original duration: {original_duration:.2f}s")
+        
+        # Loop if needed
         if music.duration < audio_duration:
             loops_needed = int(audio_duration / music.duration) + 1
-            print(f"   🔁 Looping music {loops_needed}x to match duration")
+            print(f"   🔁 Looping {loops_needed}x to reach {audio_duration:.2f}s")
             
             from moviepy.audio.AudioClip import concatenate_audioclips
             music_clips = [music] * loops_needed
@@ -651,28 +654,27 @@ def create_dynamic_music_layer(audio_duration, script_data):
         # Trim to exact duration
         music = music.subclipped(0, min(audio_duration, music.duration))
         
-        # INCREASED VOLUME LEVELS (previous was too quiet)
-        volume_levels = {
-            'early_morning': 0.40,   # Energetic (was 0.28)
-            'late_night': 0.25,      # Subtle (was 0.18)
-            'midday': 0.45,          # Powerful (was 0.30)
-            'evening': 0.32,         # Reflective (was 0.22)
-            'general': 0.35          # Default (was 0.25)
+        # Volume mapping by content type
+        volume_mapping = {
+            'early_morning': 0.40,
+            'late_night': 0.25,
+            'midday': 0.45,
+            'evening': 0.32,
+            'general': 0.35
         }
         
-        base_volume = volume_levels.get(content_type, 0.35)
+        final_volume = volume_mapping.get(content_type, 0.35)
         
-        # Use audio_volumex for better compatibility
-        from moviepy.audio.fx.volumex import volumex
-        music = music.fx(volumex, base_volume)
+        # ✅ Apply volume using multiply_volume (MoviePy 3.11 compatible)
+        music = music.multiply_volume(final_volume)
         
-        print(f"   ✅ Music layer created at {base_volume*100:.0f}% volume")
-        print(f"   Duration: {music.duration:.2f}s")
+        print(f"   ✅ Volume set: {final_volume*100:.0f}%")
+        print(f"   ✅ Final duration: {music.duration:.2f}s")
         
         return music
-            
+    
     except Exception as e:
-        print(f"⚠️ Music creation failed: {e}")
+        print(f"❌ Music layer creation failed: {e}")
         import traceback
         traceback.print_exc()
         return None

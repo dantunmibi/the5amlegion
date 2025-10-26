@@ -2,44 +2,49 @@
 """
 🔥 THE 5AM LEGION - Optimal Posting Scheduler
 Targets 2AM scrollers, 5AM warriors, and evening reflectors
+NOW SUPPORTS WAT (West Africa Time)
 """
 
 import os
 import json
+import sys
 from datetime import datetime, timedelta
 import pytz
 
-# Motivation content performs best at these times (EST):
+# MASTER SCHEDULE - Now supports BOTH EST and WAT
+TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "Africa/Lagos")  # WAT by default
+
+# Motivation content performs best at these times:
 OPTIMAL_SCHEDULE = {
     # Monday: Start strong
     0: {
-        "times": [5, 20],  # 5 AM (morning fire), 8 PM (reflection)
-        "content_types": ["morning_fire", "evening_reflection"],
-        "priority": ["highest", "high"]
+        "times": [5, 12, 23],  # 5 AM, 12 PM, 11 PM
+        "content_types": ["morning_fire", "midday_boost", "late_night_accountability"],
+        "priority": ["highest", "medium", "extreme"]
     },
     # Tuesday: Triple threat
     1: {
-        "times": [6, 12, 23],  # 6 AM, 12 PM, 11 PM
-        "content_types": ["discipline", "midday_boost", "late_night_accountability"],
-        "priority": ["highest", "medium", "extreme"]  # Late night is PRIME
+        "times": [6, 14, 22],  # 6 AM, 2 PM, 10 PM
+        "content_types": ["discipline", "afternoon_push", "evening_reflection"],
+        "priority": ["highest", "medium", "high"]
     },
     # Wednesday: Mid-week motivation
     2: {
-        "times": [5, 19],  # 5 AM, 7 PM
-        "content_types": ["morning_fire", "mindset_shift"],
-        "priority": ["highest", "high"]
+        "times": [5, 18, 23],  # 5 AM, 6 PM, 11 PM
+        "content_types": ["morning_fire", "evening_fire", "late_scrollers"],
+        "priority": ["highest", "high", "extreme"]
     },
     # Thursday: Include 2AM slot (VIRAL TIME)
     3: {
-        "times": [2, 6],  # 2 AM (crisis time), 6 AM
-        "content_types": ["late_night_truth", "discipline"],
-        "priority": ["extreme", "highest"]  # 2 AM is GOLD
+        "times": [2, 6, 13, 22],  # 2 AM, 6 AM, 1 PM, 10 PM
+        "content_types": ["late_night_truth", "discipline", "midday_fire", "night_warriors"],
+        "priority": ["extreme", "highest", "medium", "high"]
     },
     # Friday: Weekend prep
     4: {
-        "times": [5, 18],  # 5 AM, 6 PM
-        "content_types": ["morning_fire", "weekend_prep"],
-        "priority": ["highest", "high"]
+        "times": [5, 19, 23],  # 5 AM, 7 PM, 11 PM
+        "content_types": ["morning_fire", "weekend_prep", "friday_reflection"],
+        "priority": ["highest", "high", "high"]
     },
     # Saturday: No days off
     5: {
@@ -51,7 +56,7 @@ OPTIMAL_SCHEDULE = {
     6: {
         "times": [6, 8, 21, 1],  # 6 AM, 8 AM, 9 PM, 1 AM
         "content_types": ["early_riser", "sunday_motivation", "week_prep", "sunday_crisis"],
-        "priority": ["highest", "high", "high", "extreme"]  # Sunday 1 AM is VIRAL
+        "priority": ["highest", "high", "high", "extreme"]
     }
 }
 
@@ -61,44 +66,80 @@ CONTENT_PILLARS = {
         "percentage": 30,
         "description": "Aggressive wake-up calls, 5AM warrior content",
         "emotional_tone": "intense",
-        "visual_style": "sunrise, training, warrior"
+        "visual_style": "sunrise, training, warrior",
+        "keywords": ["wake up", "5am", "grind", "warrior", "discipline"]
     },
     "discipline": {
         "percentage": 25,
         "description": "Hard work, no excuses, relentless grind",
         "emotional_tone": "commanding",
-        "visual_style": "training montages, struggle, victory"
+        "visual_style": "training montages, struggle, victory",
+        "keywords": ["discipline", "focus", "commitment", "relentless", "grind"]
     },
     "mindset_shift": {
         "percentage": 20,
         "description": "Reframe failure, change beliefs, mental toughness",
         "emotional_tone": "contemplative_powerful",
-        "visual_style": "reflective, journey, transformation"
+        "visual_style": "reflective, journey, transformation",
+        "keywords": ["mindset", "belief", "transform", "perspective", "strength"]
     },
     "late_night_accountability": {
         "percentage": 15,
         "description": "2AM scrollers, existential crisis, late night truth",
         "emotional_tone": "intimate_honest",
-        "visual_style": "dark, alone, city at night"
+        "visual_style": "dark, alone, city at night",
+        "keywords": ["truth", "real", "honest", "late night", "accountability"]
     },
     "success_stories": {
         "percentage": 10,
         "description": "Transformation proof, it's possible, inspiration",
         "emotional_tone": "aspirational",
-        "visual_style": "before/after, celebration, achievement"
+        "visual_style": "before/after, celebration, achievement",
+        "keywords": ["possible", "achieved", "transformation", "proof", "success"]
+    },
+    "afternoon_push": {
+        "percentage": 15,
+        "description": "Afternoon motivation boost, fight the slump",
+        "emotional_tone": "energetic",
+        "visual_style": "action, momentum, power",
+        "keywords": ["energy", "push", "afternoon", "momentum", "continue"]
+    },
+    "evening_reflection": {
+        "percentage": 15,
+        "description": "Evening reflection, day review, tomorrow prep",
+        "emotional_tone": "contemplative",
+        "visual_style": "sunset, reflection, planning",
+        "keywords": ["reflect", "review", "tomorrow", "prepare", "vision"]
+    },
+    "weekend_grind": {
+        "percentage": 15,
+        "description": "Weekend warriors, no excuses on weekends",
+        "emotional_tone": "determined",
+        "visual_style": "weekend activities, commitment, passion",
+        "keywords": ["weekend", "warrior", "committed", "passion", "no excuses"]
+    },
+    "week_prep": {
+        "percentage": 15,
+        "description": "Prepare for the upcoming week, set intentions",
+        "emotional_tone": "hopeful_determined",
+        "visual_style": "planning, vision, future",
+        "keywords": ["week ahead", "prepare", "goals", "vision", "ready"]
     }
 }
 
-def get_current_time():
-    """Get current time in EST"""
-    est = pytz.timezone('US/Eastern')
-    return datetime.now(est)
+def get_current_time(tz_name=TIMEZONE):
+    """Get current time in specified timezone"""
+    tz = pytz.timezone(tz_name)
+    return datetime.now(tz)
 
-def should_post_now():
+def should_post_now(ignore_schedule=False):
     """Determine if current time is optimal for posting"""
     current = get_current_time()
     weekday = current.weekday()
     hour = current.hour
+    
+    if ignore_schedule:
+        return True, "manual", "user_triggered", current
     
     if weekday not in OPTIMAL_SCHEDULE:
         return False, "low", "off_schedule", current
@@ -134,12 +175,13 @@ def get_next_optimal_slot():
             
             if slot_time > current:
                 return {
-                    "time": slot_time.strftime("%A %I:%M %p EST"),
+                    "time": slot_time.strftime("%A %I:%M %p"),
                     "datetime": slot_time.isoformat(),
                     "content_type": schedule["content_types"][idx],
                     "priority": schedule["priority"][idx],
                     "day_name": slot_time.strftime("%A"),
-                    "time_only": slot_time.strftime("%I:%M %p")
+                    "time_only": slot_time.strftime("%I:%M %p"),
+                    "pillar": CONTENT_PILLARS.get(schedule["content_types"][idx], {})
                 }
     
     return None
@@ -153,11 +195,13 @@ def generate_weekly_schedule():
         slots = []
         
         for idx, hour in enumerate(config["times"]):
+            content_type = config["content_types"][idx]
             slots.append({
                 "time": f"{hour:02d}:00",
-                "content_type": config["content_types"][idx],
+                "content_type": content_type,
                 "priority": config["priority"][idx],
-                "pillar": config["content_types"][idx]
+                "pillar": CONTENT_PILLARS.get(content_type, {}),
+                "keywords": CONTENT_PILLARS.get(content_type, {}).get("keywords", [])
             })
         
         schedule[day_name] = slots
@@ -166,22 +210,39 @@ def generate_weekly_schedule():
 
 def main():
     """Main scheduler logic"""
-    should_post, priority, content_type, current_time = should_post_now()
+    # Check if ignore_schedule flag is set
+    ignore_schedule = os.getenv("IGNORE_SCHEDULE", "false").lower() == "true"
+    
+    should_post, priority, content_type, current_time = should_post_now(ignore_schedule)
     next_slot = get_next_optimal_slot()
     weekly = generate_weekly_schedule()
     
+    # Get pillar info for current content type
+    current_pillar = CONTENT_PILLARS.get(content_type, {})
+    
     # Create output
     output = {
-        "should_post_now": should_post,
-        "current_time": current_time.strftime("%Y-%m-%d %H:%M EST"),
-        "current_priority": priority,
-        "current_content_type": content_type,
-        "next_optimal_slot": next_slot,
-        "weekly_schedule": weekly,
+        "metadata": {
+            "scheduler_version": "2.0",
+            "timezone": TIMEZONE,
+            "niche": "motivation",
+            "target_audience": "2AM scrollers, 5AM warriors, evening reflectors",
+            "posting_philosophy": "Target emotional vulnerability moments"
+        },
+        "decision": {
+            "should_post_now": should_post,
+            "current_time": current_time.strftime("%Y-%m-%d %H:%M %Z"),
+            "current_priority": priority,
+            "current_content_type": content_type,
+            "current_pillar": current_pillar,
+            "reason": get_posting_reason(should_post, priority, content_type)
+        },
+        "schedule": {
+            "next_optimal_slot": next_slot,
+            "weekly_schedule": weekly
+        },
         "content_pillars": CONTENT_PILLARS,
-        "niche": "motivation",
-        "target_audience": "2AM scrollers, 5AM warriors, evening reflectors",
-        "posting_philosophy": "Target emotional vulnerability moments"
+        "generated_at": datetime.now(pytz.UTC).isoformat()
     }
     
     # Save to file
@@ -190,10 +251,39 @@ def main():
         json.dump(output, f, indent=2)
     
     # Print summary
-    print("=" * 60)
-    print("🔥 THE 5AM LEGION - POSTING SCHEDULER")
-    print("=" * 60)
-    print(f"Current Time: {current_time.strftime('%A, %B %d, %Y at %I:%M %p EST')}")
+    print_summary(should_post, current_time, priority, content_type, next_slot, weekly)
+    
+    # Set GitHub output
+    if "GITHUB_OUTPUT" in os.environ:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"should_post={'true' if should_post else 'false'}\n")
+            f.write(f"priority={priority}\n")
+            f.write(f"content_type={content_type}\n")
+            f.write(f"current_time={current_time.strftime('%Y-%m-%d %H:%M %Z')}\n")
+            f.write(f"pillar_description={current_pillar.get('description', 'N/A')}\n")
+            f.write(f"emotional_tone={current_pillar.get('emotional_tone', 'N/A')}\n")
+
+def get_posting_reason(should_post, priority, content_type):
+    """Get human-readable reason for posting decision"""
+    if not should_post:
+        return "Not within optimal posting window"
+    if priority == "extreme":
+        return "🔥 PRIME TIME - Highest virality window"
+    elif priority == "highest":
+        return "⭐ OPTIMAL - Peak engagement time"
+    elif priority == "high":
+        return "✅ Good time - Strong engagement expected"
+    elif priority == "medium":
+        return "💡 Acceptable time - Moderate engagement"
+    else:
+        return "⏳ Off-peak - Lower engagement expected"
+
+def print_summary(should_post, current_time, priority, content_type, next_slot, weekly):
+    """Print formatted summary"""
+    print("\n" + "="*70)
+    print("🔥 THE 5AM LEGION - POSTING SCHEDULER v2.0")
+    print("="*70)
+    print(f"Current Time: {current_time.strftime('%A, %B %d, %Y at %I:%M %p %Z')}")
     print(f"Should Post: {'✅ YES' if should_post else '❌ NO'}")
     print(f"Priority: {priority.upper()}")
     print(f"Content Type: {content_type.replace('_', ' ').title()}")
@@ -204,24 +294,20 @@ def main():
         print(f"   {next_slot['time']}")
         print(f"   Content: {next_slot['content_type'].replace('_', ' ').title()}")
         print(f"   Priority: {next_slot['priority'].upper()}")
+        if next_slot.get('pillar'):
+            print(f"   Description: {next_slot['pillar'].get('description', '')}")
     
     print()
     print("📊 This Week's Schedule:")
     for day, slots in weekly.items():
         print(f"\n{day}:")
         for slot in slots:
-            emoji = "🔥" if slot['priority'] == "extreme" else "⭐" if slot['priority'] == "highest" else "•"
-            print(f"  {emoji} {slot['time']} - {slot['content_type'].replace('_', ' ').title()} ({slot['priority']})")
+            emoji = "🔥" if slot['priority'] == "extreme" else "⭐" if slot['priority'] == "highest" else "✅" if slot['priority'] == "high" else "•"
+            keywords = ", ".join(slot.get('keywords', [])[:2])
+            print(f"  {emoji} {slot['time']} - {slot['content_type'].replace('_', ' ').title()}")
+            print(f"       Priority: {slot['priority']} | Keywords: {keywords}")
     
-    print("\n" + "=" * 60)
-    
-    # Set GitHub output
-    if "GITHUB_OUTPUT" in os.environ:
-        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-            f.write(f"should_post={'true' if should_post else 'false'}\n")
-            f.write(f"priority={priority}\n")
-            f.write(f"content_type={content_type}\n")
-            f.write(f"current_time={current_time.strftime('%Y-%m-%d %H:%M EST')}\n")
+    print("\n" + "="*70 + "\n")
 
 if __name__ == "__main__":
     main()

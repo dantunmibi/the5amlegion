@@ -98,85 +98,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytz
 
-      - name: 🔥 Check optimal motivation posting time
+      - name: 🔥 Run optimal scheduler
         id: schedule_check
-        run: |
-          python -c "
-          import os
-          from datetime import datetime
-          import pytz
-          
-          # West Africa Time
-          tz = pytz.timezone('Africa/Lagos')
-          current = datetime.now(tz)
-          hour = current.hour
-          weekday = current.weekday()
-
-          # MOTIVATION-OPTIMIZED SCHEDULE
-          # Key times: 5-6 AM (morning warriors), 11 PM-2 AM (late night scrollers)
-          OPTIMAL_SCHEDULE = {
-              0: [5, 12, 23],      # Monday: Morning fire, midday, late night
-              1: [6, 14, 22],      # Tuesday: Discipline, afternoon, evening
-              2: [5, 18, 23],      # Wednesday: Morning, evening fire, late
-              3: [5, 13, 22],      # Thursday: Grind, midday, night
-              4: [5, 19, 23],      # Friday: Strong finish, weekend prep, reflection
-              5: [6, 10, 20],      # Saturday: Weekend warriors, morning, evening
-              6: [7, 15, 21]       # Sunday: Rise, reflection, week prep
-          }
-
-          # CONTENT TYPES BY TIME
-          CONTENT_TYPES = {
-              'early_morning': 'Morning Fire (5-7 AM)',      # 4-6 hour
-              'midday': 'Midday Boost (11 AM-3 PM)',         # 11-15 hour
-              'evening': 'Evening Reflection (6-9 PM)',      # 18-21 hour
-              'late_night': 'Late Night Accountability (10 PM-2 AM)'  # 22-2 hour
-          }
-
-          def get_content_type(hour):
-              if 4 <= hour <= 6:
-                  return 'early_morning'
-              elif 11 <= hour <= 15:
-                  return 'midday'
-              elif 18 <= hour <= 21:
-                  return 'evening'
-              elif hour >= 22 or hour <= 2:
-                  return 'late_night'
-              return 'general'
-
-          should_post = False
-          priority = 'medium'
-          content_type = get_content_type(hour)
-          
-          ignore_schedule = '${{ github.event.inputs.ignore_schedule }}' == 'true'
-          
-          if ignore_schedule:
-              print('⚠️ Schedule check BYPASSED by user input')
-              should_post = True
-              priority = 'manual'
-          elif weekday in OPTIMAL_SCHEDULE:
-              optimal_hours = OPTIMAL_SCHEDULE[weekday]
-              # Allow posting within 1 hour window of optimal time
-              if any(abs(hour - opt_hour) <= 1 for opt_hour in optimal_hours):
-                  should_post = True
-                  # Highest priority for 5 AM and late night (2 AM) content
-                  if content_type in ['early_morning', 'late_night']:
-                      priority = 'highest'
-                  elif content_type == 'evening':
-                      priority = 'high'
-                  else:
-                      priority = 'medium'
-                  print(f'✅ Within optimal window: {current.strftime(\"%A %I:%M %p WAT\")} - {CONTENT_TYPES[content_type]}')
-              else:
-                  print(f'⏳ Not optimal time. Current: {current.strftime(\"%A %I:%M %p WAT\")}')
-                  print(f'   Next optimal: {min(optimal_hours, key=lambda x: abs(x-hour))}:00')
-          
-          # Write to GITHUB_OUTPUT
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'should_post={str(should_post).lower()}\n')
-              f.write(f'priority={priority}\n')
-              f.write(f'content_type={content_type}\n')
-              f.write(f'current_time={current.strftime(\"%Y-%m-%d %H:%M WAT\")}\n')
-          "
+        env:
+          SCHEDULER_TIMEZONE: "Africa/Lagos"  # WAT timezone
+          IGNORE_SCHEDULE: ${{ github.event.inputs.ignore_schedule }}
+        run: python .github/scripts/optimal_scheduler.py
 
       - name: 📅 Display motivation scheduling decision
         run: |
@@ -184,22 +111,24 @@ jobs:
           echo "🎯 Should Post: ${{ steps.schedule_check.outputs.should_post }}"
           echo "⭐ Priority: ${{ steps.schedule_check.outputs.priority }}"
           echo "🔥 Content Type: ${{ steps.schedule_check.outputs.content_type }}"
+          echo "💭 Tone: ${{ steps.schedule_check.outputs.emotional_tone }}"
+          echo "📝 Description: ${{ steps.schedule_check.outputs.pillar_description }}"
           echo ""
-          echo "💡 Optimal Motivation Times:"
+          echo "💡 Optimal Motivation Times (WAT):"
           echo "   • 5-6 AM: Morning Warriors (HIGHEST engagement)"
-          echo "   • 11 PM-2 AM: Late Night Scrollers (HIGHEST virality)"
+          echo "   • 2 AM: Late Night Crisis Time (HIGHEST virality)"
           echo "   • 12-2 PM: Midday Boost (Good engagement)"
           echo "   • 6-9 PM: Evening Reflection (Medium engagement)"
+          echo ""
+          cat tmp/posting_schedule.json | jq '.schedule.weekly_schedule'
 
       - name: ⏸️ Skip if not optimal motivation time
         if: steps.schedule_check.outputs.should_post != 'true'
         run: |
           echo "⏸️ Skipping run - not within optimal motivation posting window"
-          echo "💡 Best times to catch the audience:"
-          echo "   🔥 5 AM: Morning warriors starting their day"
-          echo "   🔥 2 AM: Late night scrollers in existential crisis"
-          echo "   💪 12 PM: Midday motivation seekers"
-          echo "   🌙 10 PM: Evening reflection time"
+          echo ""
+          echo "📅 Next opportunity:"
+          cat tmp/posting_schedule.json | jq '.schedule.next_optimal_slot'
           exit 0
 
       - name: 📦 Cache apt packages
