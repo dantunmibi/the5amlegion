@@ -153,7 +153,7 @@ print(f"📤 Uploading motivational video to YouTube...")
 def upload_video(youtube_client, video_path, metadata):
     media = MediaFileUpload(
         video_path,
-        chunksize=1024*1024,
+        chunksize=10*1024*1024,
         resumable=True,
         mimetype="video/mp4"
     )
