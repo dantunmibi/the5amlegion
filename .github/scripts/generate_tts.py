@@ -4,7 +4,7 @@
 Creates deep, commanding voiceover optimized for motivation content
 
 Features:
-- Deep male voices (p226, p376, p360, p287)
+- Deep male voices (p326, p376, p360, p287)
 - Strategic pauses for dramatic impact
 - Optimized audio sync timing
 - Intensity-based voice selection
@@ -24,7 +24,7 @@ PRIMARY_MODEL = "tts_models/en/vctk/vits"
 
 # ✅ CORRECT MALE SPEAKERS (Updated knowledge base)
 MALE_SPEAKERS = {
-    'p226': 'Deep authoritative male voice',
+    'p326': 'Deep authoritative male voice',
     'p376': 'Intense and passionate male voice',
     'p360': 'Commanding and strong male voice',
     'p287': 'Rich cinematic male voice'
@@ -48,7 +48,7 @@ SPEED_SETTINGS = {
 # 🔥 INTENSITY-BASED SPEAKER SELECTION (Correct males only)
 SPEAKER_BY_INTENSITY = {
     'aggressive': 'p376',      # Most intense and passionate
-    'balanced': 'p226',        # Deep and authoritative
+    'balanced': 'p326',        # Deep and authoritative
     'inspirational': 'p287'    # Rich and uplifting
 }
 
@@ -299,7 +299,7 @@ def generate_audio_with_fallback(full_text, output_path):
     intensity = os.getenv('INTENSITY', 'balanced')
     
     # ✅ Select correct male speaker based on intensity
-    speaker_id = SPEAKER_BY_INTENSITY.get(intensity, 'p226')
+    speaker_id = SPEAKER_BY_INTENSITY.get(intensity, 'p326')
     
     # Get speed setting
     speed = SPEED_SETTINGS.get(content_type, 0.75)
@@ -463,7 +463,7 @@ def save_metadata(audio_path, script_data, full_text, estimated_duration):
         'pause_count': full_text.count('...'),
         'content_type': script_data.get('content_type', 'general'),
         'intensity': script_data.get('intensity', 'balanced'),
-        'speaker': SPEAKER_BY_INTENSITY.get(script_data.get('intensity', 'balanced'), 'p226'),
+        'speaker': SPEAKER_BY_INTENSITY.get(script_data.get('intensity', 'balanced'), 'p326'),
         'model': PRIMARY_MODEL,
         'optimized': True
     }
