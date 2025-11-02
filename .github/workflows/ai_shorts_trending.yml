@@ -51,8 +51,8 @@ on:
   - cron: '0 18 * * 5'   # 7 PM WAT - Weekend mindset
   - cron: '0 22 * * 5'   # 11 PM WAT - Friday reflection
   
-  # Saturday: 6 AM (weekend warriors), 10 AM (morning inspiration), 8 PM (evening motivation)
-  - cron: '0 5 * * 6'    # 6 AM WAT - Weekend grind
+  # Saturday: 7 AM (weekend warriors), 10 AM (morning inspiration), 8 PM (evening motivation)
+  - cron: '0 6 * * 6'    # 7 AM WAT - Weekend grind
   - cron: '0 13 * * 6'    # 10 AM WAT - Morning power
   - cron: '0 21 * * 6'   # 8 PM WAT - Evening fire
   
