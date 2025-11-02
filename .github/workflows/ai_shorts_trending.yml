@@ -22,45 +22,45 @@ on:
         required: false
         default: 'balanced'
   schedule:
-  # 🔥 MOTIVATION-OPTIMAL POSTING SCHEDULE (WAT - West Africa Time)
-  # Based on 2AM scrollers, 5AM warriors, and evening reflectors
-  
-  # Monday: 5 AM (week starter), 12 PM (midday boost), 11 PM (late night)
-  - cron: '0 4 * * 1'    # 5 AM WAT - Morning fire
-  - cron: '0 11 * * 1'   # 12 PM WAT - Midday boost
-  - cron: '0 22 * * 1'   # 11 PM WAT - Late night accountability
-  
-  # Tuesday: 6 AM (discipline), 2 PM (afternoon push), 10 PM (night truth)
-  - cron: '0 5 * * 2'    # 6 AM WAT - Discipline message
-  - cron: '0 13 * * 2'   # 2 PM WAT - Afternoon motivation
-  - cron: '0 21 * * 2'   # 10 PM WAT - Evening reflection
-  
-  # Wednesday: 5 AM (mid-week warrior), 6 PM (evening fire), 11:30 PM (2AM content)
-  - cron: '0 4 * * 3'    # 5 AM WAT - Mid-week push
-  - cron: '0 17 * * 3'   # 6 PM WAT - Evening inspiration
-  - cron: '0 22 * * 3'   # 11:30 PM WAT - Late scrollers
-  
-  # Thursday: 5:30 AM (grind), 1 PM (lunch inspiration), 10:30 PM (night warriors)
-  - cron: '0 1 * * 4'    # 5:30 AM WAT - Morning grind
-  - cron: '0 5 * * 4'   # 1 PM WAT - Midday fire
-  - cron: '0 12 * * 4'   # 10:30 PM WAT - Late night
-  - cron: '0 21 * * 4'   # 10:30 PM WAT - Night warriors
-  
-  # Friday: 5 AM (finish strong), 7 PM (weekend prep), 11 PM (friday night)
-  - cron: '0 4 * * 5'    # 5 AM WAT - Week closer
-  - cron: '0 18 * * 5'   # 7 PM WAT - Weekend mindset
-  - cron: '0 22 * * 5'   # 11 PM WAT - Friday reflection
-  
-  # Saturday: 7 AM (weekend warriors), 10 AM (morning inspiration), 8 PM (evening motivation)
-  - cron: '0 6 * * 6'    # 7 AM WAT - Weekend grind
-  - cron: '0 13 * * 6'    # 10 AM WAT - Morning power
-  - cron: '0 21 * * 6'   # 8 PM WAT - Evening fire
-  
-  # Sunday: 7 AM (sunday rise), 3 PM (weekly reflection), 9 PM (week prep)
-  - cron: '0 5 * * 0'    # 6 AM WAT - Sunday warrior
-  - cron: '0 7 * * 0'    # 8 AM WAT - Sunday rise
-  - cron: '0 0 * * 0'   # 1 AM WAT - Weekly review
-  - cron: '0 20 * * 0'   # 9 PM WAT - Week ahead prep
+    # 🔥 MOTIVATION-OPTIMAL POSTING SCHEDULE (US EASTERN TIME)
+    # EST = UTC+5 (winter), EDT = UTC+4 (summer)
+    # Adding 5 hours to EST time to get UTC cron time
+    
+    # ===== MONDAY =====
+    - cron: '0 10 * * 1'   # 5 AM EST - Morning fire
+    - cron: '0 17 * * 1'   # 12 PM EST - Midday boost
+    - cron: '0 4 * * 2'    # 11 PM EST Mon - Late night accountability
+    
+    # ===== TUESDAY =====
+    - cron: '0 11 * * 2'   # 6 AM EST - Discipline message
+    - cron: '0 19 * * 2'   # 2 PM EST - Afternoon motivation
+    - cron: '0 3 * * 3'    # 10 PM EST Tue - Evening reflection
+    
+    # ===== WEDNESDAY =====
+    - cron: '0 10 * * 3'   # 5 AM EST - Mid-week push
+    - cron: '0 23 * * 3'   # 6 PM EST - Evening inspiration
+    - cron: '0 4 * * 4'    # 11 PM EST Wed - Late scrollers
+    
+    # ===== THURSDAY =====
+    - cron: '0 7 * * 4'    # 2 AM EST - Late night truth (VIRAL TIME)
+    - cron: '0 11 * * 4'   # 6 AM EST - Morning grind
+    - cron: '0 18 * * 4'   # 1 PM EST - Midday fire
+    - cron: '0 3 * * 5'    # 10 PM EST Thu - Night warriors
+    
+    # ===== FRIDAY =====
+    - cron: '0 10 * * 5'   # 5 AM EST - Week closer
+    - cron: '0 0 * * 6'    # 7 PM EST Fri - Weekend mindset
+    - cron: '0 4 * * 6'    # 11 PM EST Fri - Friday reflection
+    
+    # ===== SATURDAY =====
+    - cron: '0 12 * * 6'   # 7 AM EST - Weekend grind
+    - cron: '0 19 * * 6'   # 2 PM EST - Afternoon inspiration
+    - cron: '0 3 * * 0'    # 10 PM EST Sat - Evening fire
+    
+    # ===== SUNDAY =====
+    - cron: '0 11 * * 0'   # 6 AM EST - Sunday warrior
+    - cron: '0 13 * * 0'   # 8 AM EST - Sunday rise
+    - cron: '0 2 * * 1'    # 9 PM EST Sun - Week ahead prep
 
 jobs:
   build_and_upload:
@@ -103,7 +103,7 @@ jobs:
       - name: 🔥 Run optimal scheduler
         id: schedule_check
         env:
-          SCHEDULER_TIMEZONE: "Africa/Lagos"  # WAT timezone
+          SCHEDULER_TIMEZONE: "US/Eastern"  # EST/EDT timezone
           IGNORE_SCHEDULE: ${{ github.event.inputs.ignore_schedule }}
         run: python .github/scripts/optimal_scheduler.py
 

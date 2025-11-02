@@ -12,51 +12,51 @@ from datetime import datetime, timedelta
 import pytz
 
 # MASTER SCHEDULE - Now supports BOTH EST and WAT
-TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "Africa/Lagos")  # WAT by default
+TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "US/Eastern")  # EST/EDT by default
 
 # Motivation content performs best at these times:
 OPTIMAL_SCHEDULE = {
     # Monday: Start strong
     0: {
-        "times": [5, 12, 23],  # 5 AM, 12 PM, 11 PM
+        "times": [5, 12, 23],  # 5 AM, 12 PM, 11 PM EST
         "content_types": ["morning_fire", "midday_boost", "late_night_accountability"],
         "priority": ["highest", "medium", "extreme"]
     },
     # Tuesday: Triple threat
     1: {
-        "times": [6, 14, 22],  # 6 AM, 2 PM, 10 PM
+        "times": [6, 14, 22],  # 6 AM, 2 PM, 10 PM EST
         "content_types": ["discipline", "afternoon_push", "evening_reflection"],
         "priority": ["highest", "medium", "high"]
     },
     # Wednesday: Mid-week motivation
     2: {
-        "times": [5, 18, 23],  # 5 AM, 6 PM, 11 PM
+        "times": [5, 18, 23],  # 5 AM, 6 PM, 11 PM EST
         "content_types": ["morning_fire", "evening_fire", "late_scrollers"],
         "priority": ["highest", "high", "extreme"]
     },
     # Thursday: Include 2AM slot (VIRAL TIME)
     3: {
-        "times": [2, 6, 13, 22],  # 2 AM, 6 AM, 1 PM, 10 PM
+        "times": [2, 6, 13, 22],  # 2 AM, 6 AM, 1 PM, 10 PM EST
         "content_types": ["late_night_truth", "discipline", "midday_fire", "night_warriors"],
         "priority": ["extreme", "highest", "medium", "high"]
     },
     # Friday: Weekend prep
     4: {
-        "times": [5, 19, 23],  # 5 AM, 7 PM, 11 PM
+        "times": [5, 19, 23],  # 5 AM, 7 PM, 11 PM EST
         "content_types": ["morning_fire", "weekend_prep", "friday_reflection"],
         "priority": ["highest", "high", "high"]
     },
     # Saturday: No days off
     5: {
-        "times": [7, 14, 22],  # 7 AM, 2 PM, 10 PM
+        "times": [7, 14, 22],  # 7 AM, 2 PM, 10 PM EST
         "content_types": ["weekend_grind", "afternoon_inspiration", "reflection"],
         "priority": ["high", "medium", "high"]
     },
-    # Sunday: Quad threat (including Sunday night anxiety)
+    # Sunday: Triple threat (FIXED - removed 4th slot)
     6: {
-        "times": [6, 8, 21, 1],  # 6 AM, 8 AM, 9 PM, 1 AM
-        "content_types": ["early_riser", "sunday_motivation", "week_prep", "sunday_crisis"],
-        "priority": ["highest", "high", "high", "extreme"]
+        "times": [6, 8, 21],  # 6 AM, 8 AM, 9 PM EST
+        "content_types": ["early_riser", "sunday_motivation", "week_prep"],
+        "priority": ["highest", "high", "high"]
     }
 }
 
