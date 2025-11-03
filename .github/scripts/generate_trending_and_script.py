@@ -336,13 +336,13 @@ def generate_motivational_script():
     # Get context from environment
     content_type = os.getenv('CONTENT_TYPE', 'general')
     priority = os.getenv('PRIORITY', 'medium')
+    intensity = os.getenv('INTENSITY', 'balanced')
     
     print(f"\n{'='*70}")
     print(f"🔥 GENERATING MOTIVATIONAL SCRIPT")
     print(f"{'='*70}")
     print(f"📍 Content Type: {content_type}")
     print(f"⭐ Priority: {priority}")
-    print(f"⚡ Intensity: {intensity}")
     
     # Load scheduler data, history, and trending
     scheduler_data = load_scheduler_data()
