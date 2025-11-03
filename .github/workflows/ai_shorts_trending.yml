@@ -22,46 +22,12 @@ on:
         required: false
         default: 'balanced'
   schedule:
-    # 🔥 MOTIVATION-OPTIMAL POSTING SCHEDULE (US EASTERN TIME)
-    # EST = UTC+5 (winter), EDT = UTC+4 (summer)
-    # Adding 5 hours to EST time to get UTC cron time
-    
-    # ===== MONDAY =====
-    - cron: '0 10 * * 1'   # 5 AM EST - Morning fire
-    - cron: '0 17 * * 1'   # 12 PM EST - Midday boost
-    - cron: '0 4 * * 2'    # 11 PM EST Mon - Late night accountability
-    
-    # ===== TUESDAY =====
-    - cron: '0 11 * * 2'   # 6 AM EST - Discipline message
-    - cron: '0 19 * * 2'   # 2 PM EST - Afternoon motivation
-    - cron: '0 3 * * 3'    # 10 PM EST Tue - Evening reflection
-    
-    # ===== WEDNESDAY =====
-    - cron: '0 10 * * 3'   # 5 AM EST - Mid-week push
-    - cron: '0 23 * * 3'   # 6 PM EST - Evening inspiration
-    - cron: '0 4 * * 4'    # 11 PM EST Wed - Late scrollers
-    
-    # ===== THURSDAY =====
-    - cron: '0 7 * * 4'    # 2 AM EST - Late night truth (VIRAL TIME)
-    - cron: '0 11 * * 4'   # 6 AM EST - Morning grind
-    - cron: '0 18 * * 4'   # 1 PM EST - Midday fire
-    - cron: '0 3 * * 5'    # 10 PM EST Thu - Night warriors
-    
-    # ===== FRIDAY =====
-    - cron: '0 10 * * 5'   # 5 AM EST - Week closer
-    - cron: '0 0 * * 6'    # 7 PM EST Fri - Weekend mindset
-    - cron: '0 4 * * 6'    # 11 PM EST Fri - Friday reflection
-    
-    # ===== SATURDAY =====
-    - cron: '0 12 * * 6'   # 7 AM EST - Weekend grind
-    - cron: '0 19 * * 6'   # 2 PM EST - Afternoon inspiration
-    - cron: '0 3 * * 0'    # 10 PM EST Sat - Evening fire
-    
-    # ===== SUNDAY =====
-    - cron: '0 11 * * 0'   # 6 AM EST - Sunday warrior
-    - cron: '0 13 * * 0'   # 8 AM EST - Sunday rise
-    - cron: '0 2 * * 1'    # 9 PM EST Sun - Week ahead prep
+    # 1. Morning Ignition Slot: Triggers at 12:00 UTC (approx. 7 AM or 8 AM EST/EDT)
+    - cron: '0 12 * * *'
 
+    # 2. Nightly Reckoning Slot: Triggers at 03:00 UTC (approx. 10 PM or 11 PM EST/EDT)
+    - cron: '0 3 * * *'
+    
 jobs:
   build_and_upload:
     runs-on: ubuntu-latest

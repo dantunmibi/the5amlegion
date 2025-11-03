@@ -16,114 +16,52 @@ TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "US/Eastern")  # EST/EDT by default
 
 # Motivation content performs best at these times:
 OPTIMAL_SCHEDULE = {
-    # Monday: Start strong
-    0: {
-        "times": [5, 12, 23],  # 5 AM, 12 PM, 11 PM EST
-        "content_types": ["morning_fire", "midday_boost", "late_night_accountability"],
-        "priority": ["highest", "medium", "extreme"]
-    },
-    # Tuesday: Triple threat
-    1: {
-        "times": [6, 14, 22],  # 6 AM, 2 PM, 10 PM EST
-        "content_types": ["discipline", "afternoon_push", "evening_reflection"],
-        "priority": ["highest", "medium", "high"]
-    },
-    # Wednesday: Mid-week motivation
-    2: {
-        "times": [5, 18, 23],  # 5 AM, 6 PM, 11 PM EST
-        "content_types": ["morning_fire", "evening_fire", "late_scrollers"],
-        "priority": ["highest", "high", "extreme"]
-    },
-    # Thursday: Include 2AM slot (VIRAL TIME)
-    3: {
-        "times": [2, 6, 13, 22],  # 2 AM, 6 AM, 1 PM, 10 PM EST
-        "content_types": ["late_night_truth", "discipline", "midday_fire", "night_warriors"],
-        "priority": ["extreme", "highest", "medium", "high"]
-    },
-    # Friday: Weekend prep
-    4: {
-        "times": [5, 19, 23],  # 5 AM, 7 PM, 11 PM EST
-        "content_types": ["morning_fire", "weekend_prep", "friday_reflection"],
-        "priority": ["highest", "high", "high"]
-    },
-    # Saturday: No days off
-    5: {
-        "times": [7, 14, 22],  # 7 AM, 2 PM, 10 PM EST
-        "content_types": ["weekend_grind", "afternoon_inspiration", "reflection"],
-        "priority": ["high", "medium", "high"]
-    },
-    # Sunday: Triple threat (FIXED - removed 4th slot)
-    6: {
-        "times": [6, 8, 21],  # 6 AM, 8 AM, 9 PM EST
-        "content_types": ["early_riser", "sunday_motivation", "week_prep"],
-        "priority": ["highest", "high", "high"]
-    }
+    # Every day (Monday=0 to Sunday=6) focuses on the same two powerful slots.
+    # Slot 1: 7 AM EST (Morning Ignition) - Catches the entire US wake-up window.
+    # Slot 2: 10 PM EST (Nightly Reckoning) - Catches the evening/late-night scroll.
+    0: {"times": [7, 22], "content_types": ["morning_fire", "late_night_accountability"], "priority": ["highest", "extreme"]},
+    1: {"times": [7, 22], "content_types": ["morning_fire", "late_night_accountability"], "priority": ["highest", "extreme"]},
+    2: {"times": [7, 22], "content_types": ["morning_fire", "late_night_accountability"], "priority": ["highest", "extreme"]},
+    3: {"times": [7, 22], "content_types": ["morning_fire", "late_night_accountability"], "priority": ["highest", "extreme"]},
+    4: {"times": [7, 22], "content_types": ["morning_fire", "late_night_accountability"], "priority": ["highest", "extreme"]},
+    # Weekends use specific pillars but at the same high-impact times.
+    5: {"times": [7, 22], "content_types": ["weekend_grind", "reflection"], "priority": ["highest", "extreme"]},
+    6: {"times": [7, 22], "content_types": ["sunday_motivation", "week_prep"], "priority": ["highest", "extreme"]},
 }
 
 # Content pillar mapping
 CONTENT_PILLARS = {
+    # Morning Ignition Pillars (for the 7 AM slot)
     "morning_fire": {
-        "percentage": 30,
-        "description": "Aggressive wake-up calls, 5AM warrior content",
-        "emotional_tone": "intense",
-        "visual_style": "sunrise, training, warrior",
-        "keywords": ["wake up", "5am", "grind", "warrior", "discipline"]
+        "description": "Direct, aggressive wake-up call to conquer the day.",
+        "emotional_tone": "intense_commanding",
+        "keywords": ["wakeup", "5amclub", "noexcuses", "warrior", "conquer"]
     },
-    "discipline": {
-        "percentage": 25,
-        "description": "Hard work, no excuses, relentless grind",
-        "emotional_tone": "commanding",
-        "visual_style": "training montages, struggle, victory",
-        "keywords": ["discipline", "focus", "commitment", "relentless", "grind"]
-    },
-    "mindset_shift": {
-        "percentage": 20,
-        "description": "Reframe failure, change beliefs, mental toughness",
-        "emotional_tone": "contemplative_powerful",
-        "visual_style": "reflective, journey, transformation",
-        "keywords": ["mindset", "belief", "transform", "perspective", "strength"]
-    },
-    "late_night_accountability": {
-        "percentage": 15,
-        "description": "2AM scrollers, existential crisis, late night truth",
-        "emotional_tone": "intimate_honest",
-        "visual_style": "dark, alone, city at night",
-        "keywords": ["truth", "real", "honest", "late night", "accountability"]
-    },
-    "success_stories": {
-        "percentage": 10,
-        "description": "Transformation proof, it's possible, inspiration",
-        "emotional_tone": "aspirational",
-        "visual_style": "before/after, celebration, achievement",
-        "keywords": ["possible", "achieved", "transformation", "proof", "success"]
-    },
-    "afternoon_push": {
-        "percentage": 15,
-        "description": "Afternoon motivation boost, fight the slump",
-        "emotional_tone": "energetic",
-        "visual_style": "action, momentum, power",
-        "keywords": ["energy", "push", "afternoon", "momentum", "continue"]
-    },
-    "evening_reflection": {
-        "percentage": 15,
-        "description": "Evening reflection, day review, tomorrow prep",
-        "emotional_tone": "contemplative",
-        "visual_style": "sunset, reflection, planning",
-        "keywords": ["reflect", "review", "tomorrow", "prepare", "vision"]
+    "sunday_motivation": {
+        "description": "The week is a battle. Today is when you sharpen your sword.",
+        "emotional_tone": "hopeful_determined",
+        "keywords": ["weekahead", "prepare", "sundayreset", "vision", "dominate"]
     },
     "weekend_grind": {
-        "percentage": 15,
-        "description": "Weekend warriors, no excuses on weekends",
-        "emotional_tone": "determined",
-        "visual_style": "weekend activities, commitment, passion",
-        "keywords": ["weekend", "warrior", "committed", "passion", "no excuses"]
+        "description": "They are resting. You are working. This is the gap.",
+        "emotional_tone": "defiant_energetic",
+        "keywords": ["noweakends", "outwork", "saturdaygrind", "consistency", "nooffdays"]
+    },
+    # Nightly Reckoning Pillars (for the 10 PM slot)
+    "late_night_accountability": {
+        "description": "The day is over. Look in the mirror. Were you a warrior or a coward? Be honest.",
+        "emotional_tone": "intimate_confrontational",
+        "keywords": ["accountability", "truth", "bereal", "no_lies", "reflection"]
+    },
+    "reflection": {
+        "description": "The week is done. Are you proud of the effort? That honesty fuels next week.",
+        "emotional_tone": "sober_honest",
+        "keywords": ["reflect", "honest", "review", "learn", "prepare"]
     },
     "week_prep": {
-        "percentage": 15,
-        "description": "Prepare for the upcoming week, set intentions",
-        "emotional_tone": "hopeful_determined",
-        "visual_style": "planning, vision, future",
-        "keywords": ["week ahead", "prepare", "goals", "vision", "ready"]
+        "description": "Your rivals are sleeping. You are planning victory. The week is won tonight.",
+        "emotional_tone": "scheming_confident",
+        "keywords": ["weekprep", "strategy", "goals", "ambition", "monday"]
     }
 }
 
