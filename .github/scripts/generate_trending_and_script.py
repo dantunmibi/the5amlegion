@@ -399,12 +399,14 @@ def generate_motivational_script():
             if "description" not in data:
                 data["description"] = f"{data['title']} - {data['hook']} #motivation #discipline #shorts"
             
-            if "visual_prompts" not in data or len(data["visual_prompts"]) < 4:
+            if "visual_prompts" not in data or len(data["visual_prompts"]) < 3:
+                # Get the single Act 2 bullet safely
+                act2_text = data['bullets'][0][:50] if data.get('bullets') else "transformation"
+                
                 data["visual_prompts"] = [
                     f"Dark contemplative scene for {data['hook'][:50]} person alone with thoughts moody lighting cinematic teal and orange high contrast",
-                    f"Intense training for {data['bullets'][0][:50]} athlete pushing limits dramatic lighting slow motion sweat",
-                    f"Epic journey for {data['bullets'][1][:50]} mountain summit sunrise powerful aspirational wide cinematic",
-                    f"Commanding action for {data['bullets'][2][:50]} direct eye contact warrior stance triumphant resolving"
+                    f"Intense powerful moment for {act2_text} athlete pushing limits dramatic lighting slow motion sweat epic revelation",
+                    f"Commanding action for {data['cta'][:50]} direct eye contact warrior stance triumphant resolving ready to execute"
                 ]
             
             if "key_phrase" not in data:
