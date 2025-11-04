@@ -7,6 +7,8 @@ Creates emotionally charged motivational scripts using:
 - Content history (avoid duplicates)
 - Retry logic with exponential backoff
 - Robust JSON parsing
+
+OPTIMIZED FOR: 10-15 second YouTube Shorts (maximum retention)
 """
 
 import os
@@ -182,7 +184,10 @@ def validate_script_uses_trending_topic(script_data, trending_topics):
 
 
 def validate_script_data(data):
-    """Validate generated script has all required fields for the new 3-act structure"""
+    """
+    Validate generated script has all required fields for 3-act structure
+    OPTIMIZED FOR: 10-15 second target duration
+    """
     required_fields = ["title", "hook", "bullets", "cta"]
     
     for field in required_fields:
@@ -195,23 +200,85 @@ def validate_script_data(data):
     if not data["bullets"][0] or len(data["bullets"][0]) < 5:
         raise ValueError("The bullet for Act 2 is too short or empty.")
     
+    # ✅ MODIFIED: Stricter word count validation for 10-15 second target
+    hook_words = len(data["hook"].split())
+    truth_words = len(data["bullets"][0].split())
+    cta_words = len(data["cta"].split())
+    total_words = hook_words + truth_words + cta_words
+    
+    if total_words > 30:
+        raise ValueError(f"Script too long: {total_words} words (max 30 for 10-15 second target)")
+    
+    if hook_words > 8:
+        print(f"⚠️ Hook too long ({hook_words} words), shortening...")
+        words = data["hook"].split()[:8]
+        data["hook"] = " ".join(words)
+    
+    if truth_words > 15:
+        print(f"⚠️ Truth too long ({truth_words} words), shortening...")
+        words = data["bullets"][0].split()[:15]
+        data["bullets"][0] = " ".join(words)
+    
+    if cta_words > 7:
+        print(f"⚠️ CTA too long ({cta_words} words), shortening...")
+        words = data["cta"].split()[:7]
+        data["cta"] = " ".join(words)
+    
     if len(data["title"]) > 70:
         print(f"⚠️ Title too long ({len(data['title'])} chars), truncating...")
         data["title"] = data["title"][:67] + "..."
-    
-    if len(data["hook"].split()) > 15:
-        print(f"⚠️ Hook too long ({len(data['hook'].split())} words), shortening...")
-        words = data["hook"].split()[:12]
-        data["hook"] = " ".join(words)
         
     return True
 
 
-# In generate_trending_and_script.py
-# ACTION: Replace your entire build_motivational_prompt function with this one.
+def estimate_script_duration(script_data, speaking_rate=0.80, base_wpm=110):
+    """
+    Estimate final video duration for validation
+    
+    Args:
+        script_data: Script dictionary with hook, bullets, cta
+        speaking_rate: TTS speed multiplier (0.80 = 20% slower)
+        base_wpm: Base words per minute
+    
+    Returns:
+        Estimated duration in seconds
+    """
+    hook_words = len(script_data.get('hook', '').split())
+    truth_words = len(script_data['bullets'][0].split()) if script_data.get('bullets') else 0
+    cta_words = len(script_data.get('cta', '').split())
+    
+    total_words = hook_words + truth_words + cta_words
+    
+    # Calculate speaking time
+    actual_wpm = base_wpm * speaking_rate
+    speaking_time = (total_words / actual_wpm) * 60
+    
+    # Add pauses (from TTS configuration)
+    pause_time = 0.3 + 0.5 + 0.3  # hook + truth + cta pauses
+    
+    # Add transition time (from video creation)
+    transition_time = 3 * 0.4  # 3 clips × 0.2s fade each direction
+    
+    estimated_duration = speaking_time + pause_time + transition_time
+    
+    return {
+        'estimated_seconds': round(estimated_duration, 2),
+        'word_count': total_words,
+        'speaking_time': round(speaking_time, 2),
+        'pause_time': pause_time,
+        'transition_time': transition_time,
+        'breakdown': {
+            'hook': hook_words,
+            'truth': truth_words,
+            'cta': cta_words
+        }
+    }
+
 
 def build_motivational_prompt(scheduler_data, content_type, priority, intensity, trends, history):
-    """Build prompt using SCHEDULER DATA + TRENDING - FOCUSED 3-ACT VERSION"""
+    """
+    Build prompt using SCHEDULER DATA + TRENDING - OPTIMIZED FOR 10-15 SECONDS
+    """
     
     # Extract scheduler pillar info
     pillar = scheduler_data.get("decision", {}).get("current_pillar", {}) if scheduler_data else {}
@@ -245,7 +312,7 @@ DO NOT make up your own topic.
     # Time context
     time_of_day = get_time_of_day(datetime.now().hour)
     
-    # Build the enhanced prompt
+    # ✅ MODIFIED: Updated prompt for 10-15 second target
     prompt = f"""You are a scriptwriter for 'THE 5AM LEGION,' a hardcore motivational brand. Your tone is a fusion of David Goggins' intensity and Jocko Willink's authority.
 
 SCHEDULER CONTEXT:
@@ -260,37 +327,75 @@ SCHEDULER CONTEXT:
 PREVIOUSLY COVERED (DO NOT REPEAT THESE):
 {chr(10).join(f"  • {t}" for t in previous_topics) if previous_topics else '  None yet'}
 
-TASK: Create a brutal, high-impact script for a 20-30 second YouTube Short. It must hold 100% audience retention.
+TASK: Create a brutal, high-impact script for a 10-15 second YouTube Short optimized for MAXIMUM retention.
+
+⚠️ CRITICAL DURATION CONSTRAINTS ⚠️
+Your script MUST result in a 10-15 second final video. Every word counts.
 
 MANDATORY 3-ACT SCRIPT STRUCTURE:
 
-ACT 1: THE HOOK / THE PAIN (0-4 seconds)
-- A brutally honest, relatable statement of pain. Under 12 words. Make them feel seen INSTANTLY.
+ACT 1: THE HOOK / THE PAIN (2-4 seconds)
+- A brutally honest, relatable statement of pain
+- MAXIMUM 8 WORDS
+- Make them feel seen INSTANTLY
+- No setup, no fluff - straight to the gut
 
-ACT 2: THE TRUTH / THE REFRAME (4-15 seconds)
-- Expose the lie behind the pain. This is the core mindset shift. A short, powerful, quotable statement. Under 15 words.
+ACT 2: THE TRUTH / THE REFRAME (5-7 seconds)
+- Expose the lie behind the pain
+- This is the core mindset shift
+- MAXIMUM 15 WORDS
+- Must be quotable and screenshot-worthy
+- One powerful truth, not multiple points
 
-ACT 3: THE ACTION / THE COMMAND (15-25 seconds)
-- A simple, direct, non-negotiable command for IMMEDIATE action. What to do RIGHT NOW. Under 10 words.
+ACT 3: THE ACTION / THE COMMAND (2-4 seconds)
+- A simple, direct, non-negotiable command
+- MAXIMUM 7 WORDS
+- What to do RIGHT NOW
+- No explanation, just the action
+
+TOTAL SCRIPT: 23-30 WORDS MAXIMUM
+TARGET DURATION: 10-15 SECONDS (STRICT)
+
+WORD COUNT EXAMPLES (DO NOT EXCEED THESE):
+
+✅ GOOD (28 words total):
+Hook (7w): "You hit snooze. That's the problem right there."
+Truth (15w): "Winners feel the same resistance. They just move anyway. No negotiation with the voice."
+CTA (6w): "Set your alarm. Get up tomorrow."
+
+❌ TOO LONG (38 words - REJECTED):
+Hook: "You keep hitting the snooze button every single morning and wondering why..."
+Truth: "Successful people feel exactly the same way you do but they understand that..."
+CTA: "So starting tomorrow morning you need to make a choice to..."
 
 OUTPUT FORMAT (JSON ONLY - NO OTHER TEXT):
 {{
   "title": "ALL-CAPS TITLE UNDER 60 CHARS USING KEYWORDS",
-  "hook": "ACT 1: The brutal, honest hook. Under 12 words.",
+  "hook": "ACT 1: Brutal honest hook. MAX 8 WORDS.",
   "bullets": [
-    "ACT 2: The powerful, quotable truth/reframe. Under 15 words."
+    "ACT 2: Powerful quotable truth. MAX 15 WORDS."
   ],
-  "cta": "ACT 3: The direct, immediate command. Under 10 words.",
+  "cta": "ACT 3: Direct command. MAX 7 WORDS.",
   "hashtags": ["#5amlegion", "#discipline", "#motivation", "#mindset", "#shorts"],
-  "description": "A 1-2 sentence description continuing the intensity. Incorporate keywords.",
+  "description": "1-2 sentences continuing the intensity. Include keywords.",
   "visual_prompts": [
-    "Visual for Act 1: Dark, moody shot showing struggle or contemplation.",
-    "Visual for Act 2: Intense, powerful shot showing action or strength (e.g., training, lion).",
-    "Visual for Act 3: Commanding, resolute shot (e.g., close-up on determined eyes, starting an action)."
+    "Visual for Act 1: Dark moody shot showing struggle.",
+    "Visual for Act 2: Intense powerful shot showing action/strength.",
+    "Visual for Act 3: Commanding resolute shot showing determination."
   ]
 }}
+
+REMEMBER:
+- TOTAL WORDS: 23-30 MAXIMUM (non-negotiable)
+- Hook: ≤8 words
+- Truth: ≤15 words  
+- CTA: ≤7 words
+- Every word must EARN its place
+- Retention depends on tight pacing
+- 10-15 seconds = viral sweet spot
 """
     return prompt
+
 
 def get_time_of_day(hour):
     """Get time of day description"""
@@ -339,7 +444,7 @@ def generate_motivational_script():
     intensity = os.getenv('INTENSITY', 'balanced')
     
     print(f"\n{'='*70}")
-    print(f"🔥 GENERATING MOTIVATIONAL SCRIPT")
+    print(f"🔥 GENERATING MOTIVATIONAL SCRIPT (10-15 SECOND TARGET)")
     print(f"{'='*70}")
     print(f"📍 Content Type: {content_type}")
     print(f"⭐ Priority: {priority}")
@@ -378,12 +483,33 @@ def generate_motivational_script():
             
             validate_script_data(data)
             
+            # ✅ NEW: Estimate and validate duration BEFORE accepting
+            duration_estimate = estimate_script_duration(data)
+            
+            print(f"\n⏱️ Duration Estimate:")
+            print(f"   Total words: {duration_estimate['word_count']}")
+            print(f"   Hook: {duration_estimate['breakdown']['hook']}w")
+            print(f"   Truth: {duration_estimate['breakdown']['truth']}w")
+            print(f"   CTA: {duration_estimate['breakdown']['cta']}w")
+            print(f"   Estimated duration: {duration_estimate['estimated_seconds']}s")
+            
+            # Reject if estimated duration is outside target range
+            if duration_estimate['estimated_seconds'] > 16.0:
+                raise ValueError(f"Script too long: {duration_estimate['estimated_seconds']}s (target: 10-15s)")
+            
+            if duration_estimate['estimated_seconds'] < 9.0:
+                raise ValueError(f"Script too short: {duration_estimate['estimated_seconds']}s (target: 10-15s)")
+            
+            print(f"   ✅ Duration within target (10-15s)")
+            
             data["topic"] = "motivation"
             data["content_type"] = content_type
             data["priority"] = priority
             data["intensity"] = intensity
             data["generated_at"] = datetime.now().isoformat()
             data["niche"] = "motivation"
+            data["estimated_duration"] = duration_estimate['estimated_seconds']
+            data["word_count"] = duration_estimate['word_count']
             
             data["title"] = clean_script_text(data["title"])
             data["hook"] = clean_script_text(data["hook"])
@@ -441,7 +567,8 @@ def generate_motivational_script():
             print(f"   Title: {data['title']}")
             print(f"   Hook: {data['hook']}")
             print(f"   Key Phrase: {data.get('key_phrase', 'N/A')}")
-            print(f"   Bullets: {len(data['bullets'])} points")
+            print(f"   Words: {duration_estimate['word_count']}")
+            print(f"   Estimated: {duration_estimate['estimated_seconds']}s")
             print(f"   Hashtags: {', '.join(data['hashtags'][:5])}")
             
             break
@@ -474,19 +601,6 @@ def generate_motivational_script():
     
     print(f"\n💾 Saved script to {script_path}")
     
-    # =================== START: REPLACE THIS BLOCK ===================
-    # Save script text for TTS
-    script_text_path = os.path.join(TMP, "script.txt")
-    full_script = f"{data['hook']}\n\n"
-    full_script += "\n\n".join(data['bullets'])
-    full_script += f"\n\n{data['cta']}"
-    
-    with open(script_text_path, "w", encoding="utf-8") as f:
-        f.write(full_script)
-    # =================== END: REPLACE THIS BLOCK ===================
-
-    # WITH THIS NEW, 3-ACT ASSEMBLY LOGIC:
-    # =================== START: NEW CODE ===================
     # Save script text for TTS
     script_text_path = os.path.join(TMP, "script.txt")
     
@@ -500,7 +614,6 @@ def generate_motivational_script():
     
     with open(script_text_path, "w", encoding="utf-8") as f:
         f.write(full_script)
-    # =================== END: NEW CODE ===================
     
     print(f"💾 Saved script text for TTS to {script_text_path}")
     
@@ -510,6 +623,8 @@ def generate_motivational_script():
     print(f"{'='*70}")
     print(f"Total history: {len(history['topics'])} topics")
     print(f"Script length: {len(full_script.split())} words")
+    print(f"Estimated duration: {data.get('estimated_duration', 'N/A')}s")
+    print(f"Target: 10-15 seconds")
     print(f"Visual prompts: {len(data['visual_prompts'])}")
     
     if trends:
@@ -519,43 +634,43 @@ def generate_motivational_script():
 
 
 def get_fallback_script(content_type, intensity):
-    """Fallback script if all generation attempts fail"""
+    """Fallback script if all generation attempts fail - OPTIMIZED FOR 10-15s"""
     
     fallback_scripts = {
         'early_morning': {
             'title': "YOU'RE NOT TIRED YOU'RE UNDISCIPLINED",
-            'hook': "You slept 8 hours. The problem isn't your body.",
+            'hook': "You slept 8 hours. What's the problem.",  # 7 words
             'bullets': [
-                "The problem is you negotiate with the voice of weakness."
+                "You negotiate with weakness. Winners don't wait for motivation."  # 10 words
             ],
-            'cta': "Win the first battle. Get up.",
+            'cta': "Set alarm. Get up. Win.",  # 5 words
             'key_phrase': "DISCIPLINE OVER COMFORT"
         },
         'late_night': {
-            'title': "THE TRUTH YOU NEED TO HEAR AT 2 AM",
-            'hook': "You can't sleep because your potential is haunting you.",
+            'title': "THE TRUTH YOU NEED AT 2 AM",
+            'hook': "You can't sleep. Your potential is haunting you.",  # 8 words
             'bullets': [
-                "Another day is gone, wasted on distraction and doubt."
+                "Another day wasted on distraction. Tomorrow you die or rise."  # 11 words
             ],
-            'cta': "Decide now. Tomorrow is different.",
+            'cta': "Decide now. Tomorrow is different.",  # 5 words
             'key_phrase': "THE OLD YOU DIES TONIGHT"
         },
         'midday': {
             'title': "NOBODY IS COMING TO SAVE YOU",
-            'hook': "You are waiting for a permission slip to start your life.",
+            'hook': "You're waiting for permission to start living.",  # 7 words
             'bullets': [
-                "It will never arrive. The cavalry isn't coming."
+                "It won't arrive. The cavalry isn't coming. You're alone."  # 10 words
             ],
-            'cta': "Save yourself. Start now.",
+            'cta': "Save yourself. Start now.",  # 4 words
             'key_phrase': "SAVE YOURSELF"
         },
         'evening': {
             'title': "THE DAY IS OVER. DID YOU WIN?",
-            'hook': "Look at the last 12 hours with brutal honesty.",
+            'hook': "Look at today with brutal honesty.",  # 6 words
             'bullets': [
-                "Were you busy, or were you productive? You know the difference."
+                "Were you busy or productive. You know the difference already."  # 11 words
             ],
-            'cta': "Plan tomorrow's victory tonight.",
+            'cta': "Plan tomorrow's victory tonight.",  # 4 words
             'key_phrase': "DID YOU WIN TODAY"
         }
     }
@@ -570,7 +685,7 @@ def get_fallback_script(content_type, intensity):
         'cta': selected.get('cta'),
         'key_phrase': selected.get('key_phrase'),
         'hashtags': ['#motivation', '#discipline', '#5am', '#mindset', '#shorts'],
-        'description': f"{selected['title']} - Stop making excuses and start taking action. #motivation #discipline",
+        'description': f"{selected['title']} - Stop making excuses. #motivation #discipline",
         'visual_prompts': [
             'Person alone in dark room contemplating life choices, moody blue lighting, cinematic.',
             'Intense gym training montage, athlete pushing through pain, dramatic lighting.',
@@ -581,7 +696,9 @@ def get_fallback_script(content_type, intensity):
         'intensity': intensity,
         'is_fallback': True,
         'generated_at': datetime.now().isoformat(),
-        'niche': 'motivation'
+        'niche': 'motivation',
+        'estimated_duration': 12.0,
+        'word_count': 22
     }
 
 

@@ -9,6 +9,8 @@ Features:
 - Optimized audio sync timing
 - Intensity-based voice selection
 - Fallback models for reliability
+
+OPTIMIZED FOR: 10-15 second target duration
 """
 
 import os
@@ -36,13 +38,13 @@ FALLBACK_MODELS = [
     "tts_models/en/ljspeech/speedy-speech"
 ]
 
-# Speed adjustments for content types (PRD: 25% slower for dramatic)
+# ✅ MODIFIED: Speed adjustments for 10-15 second target (faster than before)
 SPEED_SETTINGS = {
-    'early_morning': 0.80,   # Slower, commanding (wake-up energy)
-    'late_night': 0.70,      # Very slow, intimate (2AM truth)
-    'midday': 0.85,          # Moderate, urgent (push through)
-    'evening': 0.75,         # Slow, reflective (contemplative)
-    'general': 0.75          # Default: 25% slower
+    'early_morning': 0.80,   # Commanding but efficient (was 0.80)
+    'late_night': 0.75,      # Slower for intimacy (was 0.70)
+    'midday': 0.85,          # Faster for urgency (was 0.85)
+    'evening': 0.80,         # Balanced (was 0.75)
+    'general': 0.80          # Default: 20% slower (was 0.75)
 }
 
 # 🔥 INTENSITY-BASED SPEAKER SELECTION (Correct males only)
@@ -67,8 +69,8 @@ def load_script():
 
 def build_tts_text_with_pauses(script_data):
     """
-    Build TTS text with MINIMAL pauses - let TTS handle natural pacing
-    FIXED: Remove manual pause markers, use punctuation only
+    Build TTS text with OPTIMIZED pauses for 10-15 second target
+    Uses punctuation for natural pacing
     """
     
     content_type = script_data.get('content_type', 'general')
@@ -81,7 +83,7 @@ def build_tts_text_with_pauses(script_data):
     bullets = script_data.get('bullets', [])
     cta = script_data.get('cta', '')
     
-    # Build structured text with NATURAL pauses (punctuation only)
+    # ✅ MODIFIED: Optimized pause structure for tighter timing
     tts_sections = []
     
     # Hook section
@@ -94,7 +96,7 @@ def build_tts_text_with_pauses(script_data):
         tts_sections.append({
             'name': 'hook',
             'text': hook_text,
-            'pause_after': 0.5  # Natural breath
+            'pause_after': 0.3  # REDUCED from 0.5s for tighter pacing
         })
     
     # Bullet sections
@@ -108,7 +110,7 @@ def build_tts_text_with_pauses(script_data):
         tts_sections.append({
             'name': f'bullet_{i}',
             'text': bullet_text,
-            'pause_after': 0.4  # Natural breath between points
+            'pause_after': 0.5  # KEEP at 0.5s - this is the "truth bomb" moment
         })
     
     # CTA section
@@ -120,7 +122,7 @@ def build_tts_text_with_pauses(script_data):
         tts_sections.append({
             'name': 'cta',
             'text': cta_text,
-            'pause_after': 0.5  # Final pause
+            'pause_after': 0.3  # REDUCED from 0.5s for tighter finish
         })
     
     # Build full text with ONLY punctuation (no manual pause markers)
@@ -131,41 +133,73 @@ def build_tts_text_with_pauses(script_data):
     # Join with single space - TTS will handle pauses naturally from punctuation
     full_text = ' '.join(full_text_parts)
     
-    # Calculate expected duration
+    # ✅ MODIFIED: Enhanced duration calculation with validation
     word_count = len(full_text.split())
     
+    # Base WPM by content type
     base_wpm = {
-        'early_morning': 120,
-        'late_night': 100,
-        'midday': 130,
-        'evening': 110,
-        'general': 110
+        'early_morning': 120,    # Faster wake-up energy
+        'late_night': 100,       # Slower, intimate
+        'midday': 130,           # Urgent midday push
+        'evening': 110,          # Reflective
+        'general': 110           # Default
     }
     
     wpm = base_wpm.get(content_type, 110)
     pause_time = sum(section['pause_after'] for section in tts_sections)
     word_time = (word_count / wpm) * 60
-    estimated_duration = word_time + pause_time
     
-    print(f"📝 TTS Configuration:")
+    # Get speed setting
+    speed_setting = SPEED_SETTINGS.get(content_type, 0.80)
+    
+    # Adjust for speed
+    adjusted_word_time = word_time / speed_setting
+    
+    estimated_duration = adjusted_word_time + pause_time
+    
+    # ✅ NEW: Validate duration BEFORE generating TTS
+    target_min = 9.0
+    target_max = 16.0
+    
+    if estimated_duration > target_max:
+        print(f"\n⚠️ WARNING: Estimated TTS duration {estimated_duration:.1f}s exceeds target {target_max}s")
+        print(f"   Word count: {word_count} (may be too long)")
+        print(f"   Consider regenerating script with fewer words")
+    
+    if estimated_duration < target_min:
+        print(f"\n⚠️ WARNING: Estimated TTS duration {estimated_duration:.1f}s below target {target_min}s")
+        print(f"   Word count: {word_count} (may be too short)")
+    
+    print(f"\n📝 TTS Configuration:")
     print(f"   Words: {word_count}")
     print(f"   Target WPM: {wpm}")
+    print(f"   Speed setting: {speed_setting}x")
     print(f"   Natural pauses: {pause_time:.1f}s")
+    print(f"   Word time: {adjusted_word_time:.1f}s")
     print(f"   Estimated duration: {estimated_duration:.1f}s")
+    print(f"   Target range: {target_min}-{target_max}s")
+    
+    if target_min <= estimated_duration <= target_max:
+        print(f"   ✅ Duration within target range")
+    else:
+        print(f"   ⚠️ Duration outside target (will continue anyway)")
+    
     print(f"   Preview: {full_text[:100]}...")
     
     return full_text, tts_sections, estimated_duration
 
-def generate_audio_coqui(text, output_path, speaker_id, speed=0.75):
+
+def generate_audio_coqui(text, output_path, speaker_id, speed=0.80):
     """
     Generate audio using Coqui TTS with proper speaker parameter handling
+    OPTIMIZED FOR: 10-15 second target
     """
     try:
         from TTS.api import TTS
         
         print(f"🔊 Loading Coqui TTS model: {PRIMARY_MODEL}")
         print(f"   🎤 Target speaker: {speaker_id} ({MALE_SPEAKERS.get(speaker_id, 'Unknown')})")
-        print(f"   ⚡ Speed: {speed}x (slower for dramatic impact)")
+        print(f"   ⚡ Speed: {speed}x (optimized for 10-15s target)")
         
         tts = TTS(model_name=PRIMARY_MODEL, progress_bar=False)
         
@@ -224,33 +258,34 @@ def generate_audio_coqui(text, output_path, speaker_id, speed=0.75):
         return False
 
 
-def generate_audio_espeak(text, output_path, speed_factor=0.75):
+def generate_audio_espeak(text, output_path, speed_factor=0.80):
     """
     Fallback: Generate using espeak with motivational voice settings
+    OPTIMIZED FOR: 10-15 second target
     """
     
     print(f"🔊 Using espeak fallback...")
     
     content_type = os.getenv('CONTENT_TYPE', 'general')
     
-    # espeak speed (120-140 words per minute for motivation)
-    base_speed = 135
+    # ✅ MODIFIED: Adjusted espeak speed for tighter timing
+    base_speed = 140  # Increased from 135 for faster delivery
     speed = int(base_speed * speed_factor)
     
     # Deeper pitch for authority
     pitch = 15  # Lower = deeper (range 0-99, default 50)
     
     # Pauses between words for dramatic effect
-    gap = 20  # milliseconds between words
+    gap = 15  # REDUCED from 20ms for tighter pacing
     
     print(f"   Speed: {speed} WPM")
     print(f"   Pitch: {pitch} (deeper voice)")
-    print(f"   Gap: {gap}ms (dramatic pauses)")
+    print(f"   Gap: {gap}ms (optimized pauses)")
     
     # Replace pauses with espeak pause syntax
-    text_with_pauses = text.replace('...', ' [[500]] ')  # 500ms pause for ellipsis
-    text_with_pauses = text_with_pauses.replace('.', '. [[300]] ')  # 300ms after period
-    text_with_pauses = text_with_pauses.replace('?', '? [[400]] ')  # 400ms after question
+    text_with_pauses = text.replace('...', ' [[400]] ')  # REDUCED from 500ms
+    text_with_pauses = text_with_pauses.replace('.', '. [[250]] ')  # REDUCED from 300ms
+    text_with_pauses = text_with_pauses.replace('?', '? [[350]] ')  # REDUCED from 400ms
     
     # Generate WAV first
     wav_path = output_path.replace('.mp3', '_temp.wav')
@@ -302,13 +337,13 @@ def generate_audio_with_fallback(full_text, output_path):
     speaker_id = SPEAKER_BY_INTENSITY.get(intensity, 'p326')
     
     # Get speed setting
-    speed = SPEED_SETTINGS.get(content_type, 0.75)
+    speed = SPEED_SETTINGS.get(content_type, 0.80)
     
     print(f"\n🎙️ Generating motivational voiceover...")
     print(f"   Content: {content_type}")
     print(f"   Intensity: {intensity}")
     print(f"   Speaker: {speaker_id} ({MALE_SPEAKERS[speaker_id]})")
-    print(f"   Speed: {speed}x")
+    print(f"   Speed: {speed}x (optimized for 10-15s)")
     
     # Try Coqui TTS (primary)
     success = generate_audio_coqui(full_text, output_path, speaker_id, speed)
@@ -371,6 +406,17 @@ def optimize_audio_timing(audio_path, expected_duration, tts_sections):
         print(f"   Expected: {expected_duration:.2f}s")
         print(f"   Actual: {actual_duration:.2f}s")
         print(f"   Difference: {abs(actual_duration - expected_duration):.2f}s")
+        print(f"   Target range: 10-15s")
+        
+        # ✅ NEW: Validate actual duration against target
+        if actual_duration > 16.0:
+            print(f"   ⚠️ WARNING: Audio exceeds 16s target!")
+            print(f"   This may result in lower retention rates")
+        elif actual_duration < 9.0:
+            print(f"   ⚠️ WARNING: Audio below 9s target!")
+            print(f"   Message may feel rushed")
+        else:
+            print(f"   ✅ Duration within optimal range (10-15s)")
         
         # Calculate section timings based on word count distribution
         total_words = sum(len(section['text'].split()) for section in tts_sections)
@@ -421,7 +467,9 @@ def optimize_audio_timing(audio_path, expected_duration, tts_sections):
             json.dump({
                 'total_duration': actual_duration,
                 'sections': section_timings,
-                'optimized': True
+                'optimized': True,
+                'target_range': '10-15s',
+                'within_target': 9.0 <= actual_duration <= 16.0
             }, f, indent=2)
         
         print(f"\n✅ Timing optimization complete")
@@ -454,6 +502,7 @@ def save_metadata(audio_path, script_data, full_text, estimated_duration):
     word_count = len(full_text.split())
     wpm = (word_count / duration) * 60 if duration > 0 else 0
     
+    # ✅ MODIFIED: Enhanced metadata with target compliance tracking
     metadata = {
         'audio_duration': duration,
         'estimated_duration': estimated_duration,
@@ -465,7 +514,12 @@ def save_metadata(audio_path, script_data, full_text, estimated_duration):
         'intensity': script_data.get('intensity', 'balanced'),
         'speaker': SPEAKER_BY_INTENSITY.get(script_data.get('intensity', 'balanced'), 'p326'),
         'model': PRIMARY_MODEL,
-        'optimized': True
+        'optimized': True,
+        'target_duration': '10-15s',
+        'within_target': 9.0 <= duration <= 16.0,
+        'target_min': 9.0,
+        'target_max': 16.0,
+        'speed_setting': SPEED_SETTINGS.get(script_data.get('content_type', 'general'), 0.80)
     }
     
     metadata_path = os.path.join(TMP, "audio_metadata.json")
@@ -474,11 +528,14 @@ def save_metadata(audio_path, script_data, full_text, estimated_duration):
     
     print(f"\n📊 Audio Metadata:")
     print(f"   Duration: {duration:.2f}s")
+    print(f"   Target: 10-15s")
+    print(f"   Within target: {'✅ YES' if metadata['within_target'] else '⚠️ NO'}")
     print(f"   Words: {word_count}")
     print(f"   WPM: {wpm:.1f}")
     print(f"   File: {audio_path} ({os.path.getsize(audio_path) / 1024:.1f} KB)")
     print(f"   Model: {metadata['model']}")
     print(f"   Speaker: {metadata['speaker']}")
+    print(f"   Speed: {metadata['speed_setting']}x")
     print(f"   ✅ Metadata: {metadata_path}")
 
 
@@ -486,7 +543,7 @@ def main():
     """Main TTS generation function"""
     
     print("\n" + "="*70)
-    print("🎙️ GENERATING MOTIVATIONAL VOICEOVER")
+    print("🎙️ GENERATING MOTIVATIONAL VOICEOVER (10-15s TARGET)")
     print("="*70)
     
     # Load script
@@ -495,6 +552,10 @@ def main():
     print(f"📝 Script: {script_data['title']}")
     print(f"🎯 Content Type: {script_data.get('content_type', 'general')}")
     print(f"⚡ Intensity: {script_data.get('intensity', 'balanced')}")
+    
+    # Check if script has estimated duration from generator
+    if 'estimated_duration' in script_data:
+        print(f"📋 Script estimated duration: {script_data['estimated_duration']}s")
     
     # Build TTS text with strategic pauses
     full_text, tts_sections, estimated_duration = build_tts_text_with_pauses(script_data)
@@ -522,6 +583,7 @@ def main():
     print("✅ VOICEOVER GENERATION COMPLETE!")
     print("="*70)
     print(f"Output: {output_path}")
+    print(f"Target: 10-15 seconds")
     print(f"Ready for cinematic video creation 🔥")
 
 

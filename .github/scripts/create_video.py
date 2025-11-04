@@ -10,6 +10,8 @@ Features:
 - Audio timing metadata integration
 - Multiple AI provider fallbacks
 - Smart text wrapping with safe zones
+
+OPTIMIZED FOR: 10-15 second target duration
 """
 
 import os
@@ -31,8 +33,8 @@ OUT = os.path.join(TMP, "short.mp4")
 audio_path = os.path.join(TMP, "voice.mp3")
 w, h = 1080, 1920
 
-# Safe zones for text (avoiding screen edges)
-SAFE_ZONE_MARGIN = 150
+# ✅ MODIFIED: Adjusted safe zones for tighter 10-15s videos
+SAFE_ZONE_MARGIN = 120  # REDUCED from 150
 TEXT_MAX_WIDTH = w - (2 * SAFE_ZONE_MARGIN)
 
 # 🔥 MOTIVATION COLOR PALETTE (Cinematic)
@@ -95,11 +97,13 @@ intensity = data.get("intensity", "balanced")
 visual_prompts = data.get("visual_prompts", [])
 
 print(f"🔥 Creating {content_type} motivational video ({intensity} intensity)")
+print(f"🎯 Target duration: 10-15 seconds")
 
 
 def load_audio_timing():
     """
     Load optimized audio timing metadata from TTS generation
+    ENHANCED: Validates duration against 10-15s target
     Returns: timing data or None
     """
     timing_path = os.path.join(TMP, "audio_timing.json")
@@ -110,9 +114,24 @@ def load_audio_timing():
                 timing_data = json.load(f)
             
             if timing_data.get('optimized'):
+                total_duration = timing_data['total_duration']
+                within_target = timing_data.get('within_target', False)
+                
                 print("✅ Loaded optimized audio timing metadata")
-                print(f"   Total duration: {timing_data['total_duration']:.2f}s")
+                print(f"   Total duration: {total_duration:.2f}s")
                 print(f"   Sections: {len(timing_data['sections'])}")
+                print(f"   Target range: 10-15s")
+                
+                # ✅ NEW: Validate duration
+                if total_duration > 16.0:
+                    print(f"   ⚠️ WARNING: Audio duration {total_duration:.2f}s exceeds 16s!")
+                    print(f"   Video may have lower retention. Consider regenerating.")
+                elif total_duration < 9.0:
+                    print(f"   ⚠️ WARNING: Audio duration {total_duration:.2f}s below 9s!")
+                    print(f"   Message may feel rushed.")
+                else:
+                    print(f"   ✅ Duration within optimal range")
+                
                 return timing_data
             else:
                 print("⚠️ Timing metadata not optimized, using fallback")
@@ -138,6 +157,49 @@ def load_audio_metadata():
     return None
 
 
+def validate_final_duration(estimated_total_duration, audio_duration):
+    """
+    Validate estimated video duration before rendering
+    
+    Args:
+        estimated_total_duration: Sum of all scene durations
+        audio_duration: Actual audio file duration
+    
+    Returns:
+        (is_valid, warning_message)
+    """
+    target_min = 9.0
+    target_max = 16.0
+    
+    print(f"\n🔍 Pre-Render Duration Validation:")
+    print(f"   Estimated timeline: {estimated_total_duration:.2f}s")
+    print(f"   Audio duration: {audio_duration:.2f}s")
+    print(f"   Target range: {target_min}-{target_max}s")
+    
+    # Check timeline vs audio sync
+    drift = abs(estimated_total_duration - audio_duration)
+    print(f"   Timeline drift: {drift*1000:.0f}ms")
+    
+    if drift > 0.5:
+        print(f"   ⚠️ WARNING: Significant timeline/audio drift!")
+    
+    # Check if within target
+    if estimated_total_duration > target_max:
+        warning = f"Video duration {estimated_total_duration:.2f}s exceeds {target_max}s target"
+        print(f"   ⚠️ {warning}")
+        print(f"   This will likely result in lower retention rates")
+        return False, warning
+    
+    if estimated_total_duration < target_min:
+        warning = f"Video duration {estimated_total_duration:.2f}s below {target_min}s target"
+        print(f"   ⚠️ {warning}")
+        print(f"   Message may feel too rushed")
+        return False, warning
+    
+    print(f"   ✅ Duration within target range")
+    return True, None
+
+
 def get_section_duration_from_timing(section_name, timing_data):
     """Get duration for a specific section from timing metadata"""
     if not timing_data or 'sections' not in timing_data:
@@ -153,7 +215,7 @@ def get_section_duration_from_timing(section_name, timing_data):
 def estimate_duration_fallback(text, audio_duration, all_text_parts):
     """Fallback duration estimation if timing metadata not available"""
     if not text or not all_text_parts:
-        return 3.0
+        return 2.5  # REDUCED from 3.0 for tighter timing
     
     words_this_section = len(text.split())
     total_words = sum(len(t.split()) for t in all_text_parts if t)
@@ -600,12 +662,6 @@ def add_film_grain(img, intensity=0.1):
         return img
 
 
-# Fallback method (works on all MoviePy versions)
-# ============================================
-# 🎵 MUSIC INTEGRATION FUNCTIONS
-# ============================================
-
-# ✅ PUT THE SAFE VOLUME FUNCTION HERE (first)
 def apply_volume_safe(audio_clip, volume_factor):
     """Safe volume application for all MoviePy versions"""
     try:
@@ -624,7 +680,6 @@ def apply_volume_safe(audio_clip, volume_factor):
                 return audio_clip
 
 
-# ✅ THEN YOUR EXISTING create_dynamic_music_layer FUNCTION
 def create_dynamic_music_layer(audio_duration, script_data):
     """
     Create music layer with proper volume mixing
@@ -688,7 +743,6 @@ def create_dynamic_music_layer(audio_duration, script_data):
         
         final_volume = volume_mapping.get(content_type, 0.35)
         
-        # ✅ USE THE SAFE FUNCTION HERE
         music = apply_volume_safe(music, final_volume)
         
         print(f"   ✅ Volume set: {final_volume*100:.0f}%")
@@ -701,6 +755,7 @@ def create_dynamic_music_layer(audio_duration, script_data):
         import traceback
         traceback.print_exc()
         return None
+
 
 # --- Main Scene Generation ---
 
@@ -760,7 +815,7 @@ for i in range(len(scene_images)):
 
 print(f"✅ All scenes validated")
 
-# --- Audio Loading & Timing (OPTIMIZED) ---
+# --- Audio Loading & Timing (OPTIMIZED FOR 10-15s) ---
 
 if not os.path.exists(audio_path):
     print(f"❌ Audio not found: {audio_path}")
@@ -867,6 +922,15 @@ print(f"   Total Timeline: {total_timeline:.2f}s")
 print(f"   Audio Duration: {duration:.2f}s")
 print(f"   Drift: {abs(total_timeline - duration)*1000:.0f}ms")
 
+# ✅ NEW: Pre-render duration validation
+is_valid, warning = validate_final_duration(total_timeline, duration)
+
+if not is_valid:
+    print(f"\n⚠️⚠️⚠️ DURATION WARNING ⚠️⚠️⚠️")
+    print(f"   {warning}")
+    print(f"   Proceeding anyway, but expect lower retention!")
+    print(f"   Consider regenerating script with fewer words")
+
 # --- Video Composition ---
 
 clips = []
@@ -968,18 +1032,24 @@ def create_text_with_effects(text, font_size=70, max_width=TEXT_MAX_WIDTH):
 
 
 def create_scene(image_path, text, duration, start_time, position_y='center', color_fallback=None):
-    """Create scene with image + text"""
+    """
+    Create scene with image + text
+    OPTIMIZED: Faster transitions for 10-15s target
+    """
     scene_clips = []
     
     if color_fallback is None:
         color_fallback = MOTIVATION_COLORS['deep_black']
+    
+    # ✅ MODIFIED: Reduced transition time from 0.3s to 0.2s
+    fade_duration = 0.2  # REDUCED for tighter pacing
     
     if image_path and os.path.exists(image_path):
         bg = (ImageClip(image_path)
               .resized(height=h)
               .with_duration(duration)
               .with_start(start_time)
-              .with_effects([vfx.CrossFadeIn(0.3), vfx.CrossFadeOut(0.3)]))
+              .with_effects([vfx.CrossFadeIn(fade_duration), vfx.CrossFadeOut(fade_duration)]))
     else:
         bg = (ColorClip(size=(w, h), color=color_fallback, duration=duration)
               .with_start(start_time))
@@ -1006,24 +1076,24 @@ def create_scene(image_path, text, duration, start_time, position_y='center', co
         
         text_h = text_clip.h
         descender = max(40, int(font_size * 0.6))
-        bottom_safe = SAFE_ZONE_MARGIN + 200
+        bottom_safe = SAFE_ZONE_MARGIN + 180  # ADJUSTED for tighter layout
         
         if position_y == 'center':
             pos_y = (h - text_h) // 2
         elif position_y == 'top':
-            pos_y = SAFE_ZONE_MARGIN + 100
+            pos_y = SAFE_ZONE_MARGIN + 80  # ADJUSTED
         elif position_y == 'bottom':
             pos_y = h - text_h - bottom_safe - descender
         else:
             pos_y = position_y
         
-        pos_y = max(SAFE_ZONE_MARGIN + 100, min(pos_y, h - text_h - bottom_safe - descender))
+        pos_y = max(SAFE_ZONE_MARGIN + 80, min(pos_y, h - text_h - bottom_safe - descender))
         
         text_clip = (text_clip
                     .with_duration(duration)
                     .with_start(start_time)
                     .with_position(('center', pos_y))
-                    .with_effects([vfx.CrossFadeIn(0.3), vfx.CrossFadeOut(0.3)]))
+                    .with_effects([vfx.CrossFadeIn(fade_duration), vfx.CrossFadeOut(fade_duration)]))
         
         print(f"      Text: '{text[:40]}...' @ Y={pos_y}, Size={font_size}px")
         scene_clips.append(text_clip)
@@ -1077,6 +1147,7 @@ print(f"\n📊 SYNC CHECK:")
 print(f"   Timeline: {current_time:.2f}s")
 print(f"   Audio: {duration:.2f}s")
 print(f"   Drift: {abs(current_time - duration)*1000:.0f}ms")
+print(f"   Target: 10-15s")
 
 if abs(current_time - duration) < 0.05:
     print(f"   ✅ NEAR-PERFECT SYNC!")
@@ -1084,6 +1155,13 @@ elif abs(current_time - duration) < 0.5:
     print(f"   ✅ Excellent sync (within tolerance)")
 else:
     print(f"   ⚠️ Sync drift detected (may need adjustment)")
+
+# ✅ NEW: Final validation before composition
+if current_time > 16.0:
+    print(f"\n⚠️⚠️⚠️ CRITICAL WARNING ⚠️⚠️⚠️")
+    print(f"   Video timeline {current_time:.2f}s exceeds 16s!")
+    print(f"   This WILL result in lower retention")
+    print(f"   Strongly recommend regenerating with fewer words")
 
 print(f"\n🎬 Composing video ({len(clips)} clips)...")
 video = CompositeVideoClip(clips, size=(w, h))
@@ -1096,7 +1174,6 @@ background_music = create_dynamic_music_layer(duration, data)
 if background_music:
     try:
         # Composite: TTS voiceover + background music
-        # TTS is already at proper volume from generate_tts.py
         final_audio = CompositeAudioClip([audio, background_music])
         video = video.with_audio(final_audio)
         print(f"   ✅ Audio: TTS + Epic background music (professional mix)")
@@ -1126,30 +1203,78 @@ try:
         logger=None
     )
     
-    sync_status = "NEAR-PERFECT" if abs(current_time - duration) < 0.05 else "EXCELLENT" if abs(current_time - duration) < 0.5 else "GOOD"
+    # ✅ NEW: Post-render duration validation
+    try:
+        result = subprocess.run([
+            'ffprobe',
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            OUT
+        ], capture_output=True, text=True, check=True)
+        
+        actual_video_duration = float(result.stdout.strip())
+        
+        print(f"\n✅ POST-RENDER VALIDATION:")
+        print(f"   Actual video duration: {actual_video_duration:.2f}s")
+        print(f"   Target range: 10-15s")
+        
+        if 9.0 <= actual_video_duration <= 16.0:
+            print(f"   ✅ Duration within optimal range!")
+            sync_status = "OPTIMAL"
+        elif actual_video_duration > 16.0:
+            print(f"   ⚠️ WARNING: Video exceeds 16s target!")
+            print(f"   Expected lower retention rates")
+            sync_status = "TOO_LONG"
+        else:
+            print(f"   ⚠️ WARNING: Video below 9s target!")
+            sync_status = "TOO_SHORT"
+        
+        # Save validation metadata
+        validation_data = {
+            'actual_duration': actual_video_duration,
+            'target_min': 9.0,
+            'target_max': 16.0,
+            'within_target': 9.0 <= actual_video_duration <= 16.0,
+            'sync_status': sync_status,
+            'timeline_duration': current_time,
+            'audio_duration': duration,
+            'drift_ms': abs(current_time - duration) * 1000,
+            'validated_at': datetime.now().isoformat()
+        }
+        
+        validation_path = os.path.join(TMP, "video_validation.json")
+        with open(validation_path, 'w') as f:
+            json.dump(validation_data, f, indent=2)
+        
+        print(f"   💾 Validation saved: {validation_path}")
+        
+    except Exception as e:
+        print(f"   ⚠️ Post-render validation failed: {e}")
+        actual_video_duration = current_time
+        sync_status = "UNKNOWN"
     
     print(f"\n✅ MOTIVATIONAL VIDEO COMPLETE!")
     print(f"   Path: {OUT}")
-    print(f"   Duration: {duration:.2f}s")
+    print(f"   Duration: {actual_video_duration:.2f}s")
     print(f"   Size: {os.path.getsize(OUT) / (1024*1024):.2f} MB")
-    print(f"   Sync Status: {sync_status} ({abs(current_time - duration)*1000:.0f}ms drift)")
+    print(f"   Sync Status: {sync_status}")
+    print(f"   Target: 10-15 seconds")
     print(f"   Features:")
+    print(f"      ✓ Optimized for 10-15s target duration")
+    print(f"      ✓ Faster transitions (0.2s vs 0.3s)")
+    print(f"      ✓ Pre-render duration validation")
+    print(f"      ✓ Post-render verification")
     print(f"      ✓ Optimized audio timing metadata")
     print(f"      ✓ Epic background music with dynamic volume")
     print(f"      ✓ Cinematic teal & orange color grading")
-    print(f"      ✓ Motivation-specific image generation")
-    print(f"      ✓ Curated fitness/warrior photos")
     print(f"      ✓ High contrast dramatic lighting")
     print(f"      ✓ Film grain for cinematic feel")
-    print(f"      ✓ Vignette effects")
-    print(f"      ✓ Smart text wrapping (no splits)")
     print(f"      ✓ Audio-synchronized timing")
-    print(f"      ✓ Safe zone text positioning")
-    print(f"      ✓ Adaptive font sizing")
-    print(f"      ✓ Cross-fade transitions")
+    print(f"      ✓ Smart text wrapping (no splits)")
     if background_music:
         print(f"      ✓ Professional audio mix (TTS + Music)")
-    print(f"   🔥 Motivational empire ready!")
+    print(f"   🔥 Optimized for maximum retention!")
     
 except Exception as e:
     print(f"❌ Video creation failed: {e}")

@@ -21,6 +21,12 @@ on:
         description: 'Content intensity (aggressive, balanced, inspirational)'
         required: false
         default: 'balanced'
+      # ✅ NEW: Strict validation toggle
+      strict_validation:
+        description: 'Enable strict validation (blocks upload if video >16s or <9s)'
+        required: false
+        type: boolean
+        default: false
   schedule:
     # 1. Morning Ignition Slot: Triggers at 12:00 UTC (approx. 7 AM or 8 AM EST/EDT)
     - cron: '0 12 * * *'
@@ -82,7 +88,7 @@ jobs:
           echo "💭 Tone: ${{ steps.schedule_check.outputs.emotional_tone }}"
           echo "📝 Description: ${{ steps.schedule_check.outputs.pillar_description }}"
           echo ""
-          echo "💡 Optimal Motivation Times (WAT):"
+          echo "💡 Optimal Motivation Times (EST/EDT):"
           echo "   • 5-6 AM: Morning Warriors (HIGHEST engagement)"
           echo "   • 2 AM: Late Night Crisis Time (HIGHEST virality)"
           echo "   • 12-2 PM: Midday Boost (Good engagement)"
@@ -106,7 +112,7 @@ jobs:
           path: |
             /var/cache/apt/archives
             /var/lib/apt/lists
-          key: ${{ runner.os }}-apt-motivation-${{ hashFiles('.github/workflows/motivation_shorts.yml') }}
+          key: ${{ runner.os }}-apt-motivation-${{ hashFiles('.github/workflows/ai_shorts_trending.yml') }}
           restore-keys: |
             ${{ runner.os }}-apt-motivation-
             ${{ runner.os }}-apt-
@@ -183,6 +189,7 @@ jobs:
           echo "🔥 Python dependencies installed for motivation engine"
 
       - name: 🎵 Download background music library
+        if: steps.schedule_check.outputs.should_post == 'true'
         run: |
           echo "🎵 Downloading copyright-free epic music..."
           python .github/scripts/download_music.py --download-all
@@ -200,7 +207,7 @@ jobs:
           echo "⚡ Intensity: ${INTENSITY:-balanced}"
           python .github/scripts/fetch_trending.py
 
-      - name: ✍️ Generate motivational script
+      - name: ✍️ Generate motivational script (10-15s TARGET)
         if: steps.schedule_check.outputs.should_post == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -209,29 +216,81 @@ jobs:
           INTENSITY: ${{ github.event.inputs.intensity }}
         run: |
           echo "🔥 Generating POWERFUL motivational script..."
+          echo "🎯 Target: 10-15 seconds (OPTIMIZED)"
           echo "📍 Type: $CONTENT_TYPE"
           echo "⭐ Priority: $PRIORITY"
           echo "⚡ Intensity: ${INTENSITY:-balanced}"
           python .github/scripts/generate_trending_and_script.py
 
-      - name: 🎙️ Generate commanding voiceover (Deep & Powerful)
+      - name: 🎙️ Generate commanding voiceover (Optimized for 10-15s)
         if: steps.schedule_check.outputs.should_post == 'true'
         env:
           CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
         run: |
           echo "🎙️ Generating DEEP, COMMANDING voiceover..."
+          echo "🎯 Target: 10-15 seconds"
           echo "🔥 Style: Motivational speaker (David Goggins/Jocko energy)"
           python .github/scripts/generate_tts.py
 
-      - name: 🎬 Create cinematic motivational video
+      - name: 🎬 Create cinematic motivational video (10-15s TARGET)
         if: steps.schedule_check.outputs.should_post == 'true'
         env:
           HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
           CONTENT_TYPE: ${{ steps.schedule_check.outputs.content_type }}
         run: |
           echo "🎬 Creating CINEMATIC motivational video..."
+          echo "🎯 Target: 10-15 seconds (OPTIMIZED)"
           echo "🎨 Style: Teal & Orange, high contrast, warrior imagery"
           python .github/scripts/create_video.py
+
+      # ✅ NEW STEP: Duration Validation
+      - name: 🔍 Validate video duration (10-15s target)
+        if: steps.schedule_check.outputs.should_post == 'true'
+        id: validate_duration
+        env:
+          STRICT_VALIDATION: ${{ github.event.inputs.strict_validation || 'false' }}
+        run: |
+          echo "🔍 Validating video duration..."
+          echo "🎯 Target: 10-15 seconds (optimal)"
+          echo "📏 Acceptable: 9-16 seconds"
+          echo "⚙️ Strict mode: ${STRICT_VALIDATION}"
+          python .github/scripts/validate_duration.py
+        continue-on-error: true
+
+      # ✅ NEW STEP: Display validation results
+      - name: 📊 Display validation results
+        if: steps.schedule_check.outputs.should_post == 'true'
+        run: |
+          echo "📊 Duration Validation Results:"
+          echo "════════════════════════════════════════════════════════"
+          
+          if [ -f tmp/duration_validation.json ]; then
+            cat tmp/duration_validation.json | jq '.'
+            
+            DURATION=$(cat tmp/duration_validation.json | jq -r '.video_duration // "N/A"')
+            STATUS=$(cat tmp/duration_validation.json | jq -r '.duration_status // "UNKNOWN"')
+            OVERALL=$(cat tmp/duration_validation.json | jq -r '.overall_status // "UNKNOWN"')
+            
+            echo ""
+            echo "Video Duration: ${DURATION}s"
+            echo "Duration Status: $STATUS"
+            echo "Overall Status: $OVERALL"
+            echo "Target Range: 10-15s (optimal)"
+            
+            if [ "$STATUS" = "OPTIMAL" ]; then
+              echo "✅ Video is within OPTIMAL range!"
+            elif [ "$STATUS" = "ACCEPTABLE" ]; then
+              echo "⚠️ Video is acceptable but not optimal"
+            elif [ "$STATUS" = "TOO_LONG" ]; then
+              echo "⚠️ WARNING: Video exceeds target (may reduce retention)"
+            elif [ "$STATUS" = "TOO_SHORT" ]; then
+              echo "⚠️ WARNING: Video below target (may feel rushed)"
+            fi
+          else
+            echo "⚠️ Validation report not found"
+          fi
+          
+          echo "════════════════════════════════════════════════════════"
 
       - name: 🖼️ Generate powerful thumbnail
         if: steps.schedule_check.outputs.should_post == 'true'
@@ -299,6 +358,14 @@ jobs:
           VIDEO_PATH="${{ steps.find_video.outputs.video_path }}"
           VIDEO_SIZE=$(stat -c%s "$VIDEO_PATH" 2>/dev/null || stat -f%z "$VIDEO_PATH")
           
+          # ✅ NEW: Include validation data in payload
+          VIDEO_DURATION="N/A"
+          DURATION_STATUS="UNKNOWN"
+          if [ -f tmp/duration_validation.json ]; then
+            VIDEO_DURATION=$(jq -r '.video_duration // "N/A"' tmp/duration_validation.json)
+            DURATION_STATUS=$(jq -r '.duration_status // "UNKNOWN"' tmp/duration_validation.json)
+          fi
+          
           YOUTUBE_URL=""
           TIKTOK_URL=""
           INSTAGRAM_URL=""
@@ -319,6 +386,9 @@ jobs:
             "key_phrase": "$KEY_PHRASE",
             "video_name": "$(basename $VIDEO_PATH)",
             "video_size_mb": $(echo "scale=2; $VIDEO_SIZE/1024/1024" | bc),
+            "video_duration_seconds": $VIDEO_DURATION,
+            "duration_status": "$DURATION_STATUS",
+            "target_duration": "10-15s",
             "workflow_run": "${{ github.run_number }}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "niche": "motivation",
@@ -419,6 +489,9 @@ jobs:
             tmp/content_history.json
             tmp/multiplatform_log.json
             tmp/voice.mp3
+            tmp/duration_validation.json
+            tmp/video_validation.json
+            tmp/audio_metadata.json
           retention-days: 30
 
       - name: 📋 Upload logs on failure
@@ -429,6 +502,7 @@ jobs:
           path: tmp/*.log
           retention-days: 7
 
+      # ✅ ENHANCED: Workflow Summary with Duration Metrics
       - name: 🔥 Workflow Summary
         if: always()
         run: |
@@ -440,6 +514,33 @@ jobs:
           echo "**Content Type:** ${{ steps.schedule_check.outputs.content_type }}" >> $GITHUB_STEP_SUMMARY
           echo "**Intensity:** ${{ github.event.inputs.intensity }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # ✅ NEW: Duration metrics in summary
+          if [ -f tmp/duration_validation.json ]; then
+            echo "### 📊 Duration Metrics (10-15s Target)" >> $GITHUB_STEP_SUMMARY
+            
+            DURATION=$(cat tmp/duration_validation.json | jq -r '.video_duration // "N/A"')
+            STATUS=$(cat tmp/duration_validation.json | jq -r '.duration_status // "UNKNOWN"')
+            WORD_COUNT=$(cat tmp/duration_validation.json | jq -r '.word_count // "N/A"')
+            
+            echo "- **Video Duration:** ${DURATION}s" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status:** $STATUS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Word Count:** $WORD_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "- **Target Range:** 10-15s (optimal)" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$STATUS" = "OPTIMAL" ]; then
+              echo "- ✅ **Within optimal range**" >> $GITHUB_STEP_SUMMARY
+            elif [ "$STATUS" = "ACCEPTABLE" ]; then
+              echo "- ⚠️ **Acceptable but not optimal**" >> $GITHUB_STEP_SUMMARY
+            elif [ "$STATUS" = "TOO_LONG" ]; then
+              echo "- ⚠️ **Exceeds target (may reduce retention)**" >> $GITHUB_STEP_SUMMARY
+            elif [ "$STATUS" = "TOO_SHORT" ]; then
+              echo "- ⚠️ **Below target (may feel rushed)**" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "### 🔥 Optimal Posting Times" >> $GITHUB_STEP_SUMMARY
           echo "- **5-6 AM:** Morning Warriors (HIGHEST)" >> $GITHUB_STEP_SUMMARY
           echo "- **11 PM-2 AM:** Late Night Scrollers (HIGHEST)" >> $GITHUB_STEP_SUMMARY
