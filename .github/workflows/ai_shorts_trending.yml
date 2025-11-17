@@ -21,17 +21,13 @@ on:
         description: 'Content intensity (aggressive, balanced, inspirational)'
         required: false
         default: 'balanced'
-      # ✅ NEW: Strict validation toggle
       strict_validation:
         description: 'Enable strict validation (blocks upload if video >16s or <9s)'
         required: false
         type: boolean
         default: false
   schedule:
-    # 1. Morning Ignition Slot: Triggers at 12:00 UTC (approx. 7 AM or 8 AM EST/EDT)
     - cron: '0 12 * * *'
-
-    # 2. Nightly Reckoning Slot: Triggers at 03:00 UTC (approx. 10 PM or 11 PM EST/EDT)
     - cron: '0 3 * * *'
     
 jobs:
@@ -42,6 +38,33 @@ jobs:
     steps:
       - name: 🔥 Checkout 5AM Legion
         uses: actions/checkout@v4
+
+      # ✅ NEW: Free up disk space BEFORE anything else
+      - name: 🧹 Free up runner disk space
+        run: |
+          echo "════════════════════════════════════════════════"
+          echo "🔍 RUNNER DISK SPACE - BEFORE CLEANUP"
+          echo "════════════════════════════════════════════════"
+          df -h / | grep -E "Filesystem|/dev/root"
+          echo ""
+          
+          echo "🗑️ Removing unused system packages..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          
+          echo "🐳 Cleaning Docker cache..."
+          docker image prune -f || true
+          
+          echo ""
+          echo "════════════════════════════════════════════════"
+          echo "✅ RUNNER DISK SPACE - AFTER CLEANUP"
+          echo "════════════════════════════════════════════════"
+          df -h / | grep -E "Filesystem|/dev/root"
+          echo ""
+          echo "💾 Freed: ~3.5GB"
+          echo "════════════════════════════════════════════════"
 
       - name: 🔐 Validate secrets
         env:
@@ -67,15 +90,16 @@ jobs:
             ${{ runner.os }}-pip-motivation-
             ${{ runner.os }}-pip-
 
+      # ✅ MODIFIED: Added --no-cache-dir
       - name: 📦 Install Python packages (for scheduler check)
         run: |
-          python -m pip install --upgrade pip
-          pip install pytz
+          python -m pip install --upgrade pip --no-cache-dir
+          pip install --no-cache-dir pytz
 
       - name: 🔥 Run optimal scheduler
         id: schedule_check
         env:
-          SCHEDULER_TIMEZONE: "US/Eastern"  # EST/EDT timezone
+          SCHEDULER_TIMEZONE: "US/Eastern"
           IGNORE_SCHEDULE: ${{ github.event.inputs.ignore_schedule }}
         run: python .github/scripts/optimal_scheduler.py
 
@@ -117,6 +141,7 @@ jobs:
             ${{ runner.os }}-apt-motivation-
             ${{ runner.os }}-apt-
 
+      # ✅ MODIFIED: Added apt-get clean
       - name: 🔧 Install system deps
         if: steps.schedule_check.outputs.should_post == 'true'
         run: |
@@ -131,6 +156,11 @@ jobs:
             fonts-freefont-ttf \
             fonts-roboto-unhinted \
             espeak-ng
+          
+          # Clean APT cache to save space
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          
           echo "📝 Available fonts for IMPACT text:"
           fc-list | grep -i dejavu | head -3
           fc-list | grep -i liberation | head -3
@@ -181,18 +211,35 @@ jobs:
             content-history-motivation-
             content-history-
 
+      # ✅ MODIFIED: Added --no-cache-dir
       - name: 📦 Install Python packages
         if: steps.schedule_check.outputs.should_post == 'true'
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip --no-cache-dir
+          pip install --no-cache-dir -r requirements.txt
           echo "🔥 Python dependencies installed for motivation engine"
 
+      # ✅ NEW: Music library caching
+      - name: 💾 Cache music library
+        if: steps.schedule_check.outputs.should_post == 'true'
+        uses: actions/cache@v4
+        with:
+          path: tmp/music
+          key: music-library-motivation-v1-${{ hashFiles('.github/scripts/download_music.py') }}
+          restore-keys: |
+            music-library-motivation-v1-
+
+      # ✅ MODIFIED: Check cache before downloading
       - name: 🎵 Download background music library
         if: steps.schedule_check.outputs.should_post == 'true'
         run: |
-          echo "🎵 Downloading copyright-free epic music..."
-          python .github/scripts/download_music.py --download-all
+          if [ -d "tmp/music" ] && [ "$(ls -A tmp/music/*.mp3 2>/dev/null | wc -l)" -gt 10 ]; then
+            echo "✅ Music library cached: $(ls tmp/music/*.mp3 2>/dev/null | wc -l) tracks"
+            echo "📊 Total size: $(du -sh tmp/music 2>/dev/null | cut -f1)"
+          else
+            echo "🎵 Downloading copyright-free epic music..."
+            python .github/scripts/download_music.py --download-all
+          fi
         continue-on-error: true
 
       - name: 🔍 Fetch trending motivational topics
@@ -243,7 +290,6 @@ jobs:
           echo "🎨 Style: Teal & Orange, high contrast, warrior imagery"
           python .github/scripts/create_video.py
 
-      # ✅ NEW STEP: Duration Validation
       - name: 🔍 Validate video duration (10-15s target)
         if: steps.schedule_check.outputs.should_post == 'true'
         id: validate_duration
@@ -257,7 +303,6 @@ jobs:
           python .github/scripts/validate_duration.py
         continue-on-error: true
 
-      # ✅ NEW STEP: Display validation results
       - name: 📊 Display validation results
         if: steps.schedule_check.outputs.should_post == 'true'
         run: |
@@ -309,7 +354,6 @@ jobs:
           rm -f tmp/short_ready.mp4 || true
           echo "🧹 Cleaned up temporary files"
 
-      # ===== MULTI-PLATFORM MOTIVATION UPLOAD =====
       - name: 📤 Upload to multiple platforms
         if: steps.schedule_check.outputs.should_post == 'true'
         env:
@@ -358,7 +402,6 @@ jobs:
           VIDEO_PATH="${{ steps.find_video.outputs.video_path }}"
           VIDEO_SIZE=$(stat -c%s "$VIDEO_PATH" 2>/dev/null || stat -f%z "$VIDEO_PATH")
           
-          # ✅ NEW: Include validation data in payload
           VIDEO_DURATION="N/A"
           DURATION_STATUS="UNKNOWN"
           if [ -f tmp/duration_validation.json ]; then
@@ -502,7 +545,6 @@ jobs:
           path: tmp/*.log
           retention-days: 7
 
-      # ✅ ENHANCED: Workflow Summary with Duration Metrics
       - name: 🔥 Workflow Summary
         if: always()
         run: |
@@ -515,7 +557,6 @@ jobs:
           echo "**Intensity:** ${{ github.event.inputs.intensity }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # ✅ NEW: Duration metrics in summary
           if [ -f tmp/duration_validation.json ]; then
             echo "### 📊 Duration Metrics (10-15s Target)" >> $GITHUB_STEP_SUMMARY
             
