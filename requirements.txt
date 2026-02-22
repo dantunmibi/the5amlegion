@@ -7,7 +7,7 @@ wheel>=0.41.0
 google-generativeai
 requests
 beautifulsoup4
-moviepy
+moviepy>=2.0.0
 google-api-python-client
 google-auth
 Pillow
